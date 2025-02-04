@@ -22,18 +22,17 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--user={{ valkey_uid }}:{{ valkey_gid }} \
 			--cap-drop=ALL \
 			--read-only \
-			--tmpfs=/tmp:rw,noexec,nosuid,size=100m \
 			--network={{ sonarr_container_network }} \
-			{% if sonarr_container_valkey_bind_port %}
-			-p {{ sonarr_container_valkey_bind_port }}:6379 \
+			{% if sonarr_container_http_bind_port %}
+			-p {{ sonarr_container_http_bind_port }}:8989 \
 			{% endif %}
-			--mount type=bind,src={{ sonarr_config_path }}/valkey.conf,dst=/usr/local/etc/valkey/valkey.conf,ro \
+			--env-file={{ sonarr_base_path }}/env \
+			--label-file={{ sonarr_base_path }}/labels \
 			--mount type=bind,src={{ sonarr_data_path }},dst=/data \
 			{% for arg in sonarr_container_extra_arguments %}
 			{{ arg }} \
 			{% endfor %}
-			{{ sonarr_container_image }} \
-			valkey-server /usr/local/etc/valkey/valkey.conf
+			{{ sonarr_container_image }}
 
 {% for network in sonarr_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ sonarr_identifier }}
