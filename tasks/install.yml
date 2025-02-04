@@ -1,149 +1,46 @@
 ---
 
-- name: Ensure Traefik paths exist
+- name: Ensure Sonarr paths exist
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: "{{ item }}"
     state: directory
-    mode: "0750"
-    owner: "{{ traefik_uid }}"
-    group: "{{ traefik_gid }}"
-  when: item.when | bool
+    mode: 0750
+    owner: "{{ sonarr_uid }}"
+    group: "{{ sonarr_gid }}"
   with_items:
-    - path: "{{ traefik_base_path }}"
-      when: true
-    - path: "{{ traefik_config_dir_path }}"
-      when: true
-    - path: "{{ traefik_ssl_dir_path }}"
-      when: "{{ traefik_ssl_dir_enabled }}"
-    - path: "{{ traefik_plugins_dir_path }}"
-      when: "{{ traefik_plugin_support_enabled }}"
+    - "{{ sonarr_base_path }}"
+    - "{{ sonarr_config_path }}"
+    - "{{ sonarr_data_path }}"
 
-- when: traefik_dashboard_basicauth_enabled | bool
-  block:
-    # We do this locally, so that we won't need passlib to be installed on the server.
-    - name: Generate basic auth file locally
-      community.general.htpasswd:
-        path: "{{ traefik_dashboard_basicauth_file_tmp }}"
-        name: "{{ traefik_dashboard_basicauth_user }}"
-        password: "{{ traefik_dashboard_basicauth_password }}"
-        mode: 0640
-      become: false
-      delegate_to: 127.0.0.1
-
-    - name: Load basic auth file contents
-      ansible.builtin.slurp:
-        src: "{{ traefik_dashboard_basicauth_file_tmp }}"
-      become: false
-      delegate_to: 127.0.0.1
-      register: traefik_dashboard_basicauth_file_contents_raw
-
-    - name: Load basic auth file contents
-      ansible.builtin.set_fact:
-        traefik_dashboard_basicauth_file_contents: "{{ traefik_dashboard_basicauth_file_contents_raw['content'] | b64decode | trim }}"
-
-    - name: Ensure local temporary basic auth file is removed
-      ansible.builtin.file:
-        path: "{{ traefik_dashboard_basicauth_file_tmp }}"
-        state: absent
-      become: false
-      delegate_to: 127.0.0.1
-
-- name: Ensure Traefik environment variables installed
-  ansible.builtin.copy:
-    content: "{{ traefik_environment_variables }}"
-    dest: "{{ traefik_config_dir_path }}/env"
-    owner: "{{ traefik_uid }}"
-    group: "{{ traefik_gid }}"
-    mode: 0640
-
-- name: Ensure Traefik support files installed
+- name: Ensure Sonarr environment variables file created
   ansible.builtin.template:
     src: "{{ role_path }}/templates/{{ item }}.j2"
-    dest: "{{ traefik_config_dir_path }}/{{ item }}"
-    owner: "{{ traefik_uid }}"
-    group: "{{ traefik_gid }}"
+    dest: "{{ sonarr_config_path }}/{{ item }}"
     mode: 0640
+    owner: "{{ sonarr_uid }}"
+    group: "{{ sonarr_gid }}"
   with_items:
-    - env
-    - labels
+    - "sonarr.conf"
 
-- name: Ensure traefik.yml installed
-  ansible.builtin.copy:
-    content: "{{ traefik_configuration | to_nice_yaml(indent=2, width=999999) }}"
-    dest: "{{ traefik_config_dir_path }}/traefik.yml"
-    owner: "{{ traefik_uid }}"
-    group: "{{ traefik_gid }}"
-    mode: 0640
-
-- name: Ensure provider.yml installed
-  ansible.builtin.copy:
-    content: "{{ traefik_provider_configuration | to_nice_yaml(indent=2, width=999999) }}"
-    dest: "{{ traefik_config_dir_path }}/provider.yml"
-    owner: "{{ traefik_uid }}"
-    group: "{{ traefik_gid }}"
-    mode: 0640
-
-
-# If the Docker API is accessed through a UNIX socket (like we do by default), the container is run as root,
-# which means that the acme.json file is also created as root. For such a privilege container, this root-owned file is OK.
-#
-# When switching to accessing the Docker API via TCP, we run the container with a regular user.
-# An already existing acme.json (owned by root:root) won't be accessible and needs to be fixed up.
-#
-# If the permissions for these file are incorrect, Traefik will report this error and ignore the whole certificate resolver:
-# > The ACME resolve is skipped from the resolvers list error="unable to get ACME account: permissions 777 for /ssl/acme.json are too open, please use 600" resolver=default
-#
-# File ownership/permissions may become incorrect for other reasons too, so this is here to ensure we correct it if it happens.
-- when: traefik_ssl_dir_enabled | bool
-  block:
-    - name: Check existence of acme.json file
-      ansible.builtin.stat:
-        path: "{{ traefik_ssl_dir_path }}/acme.json"
-      register: traefik_ssl_acme_json_stat
-
-    - name: Ensure ACME file permissions are correct
-      when: traefik_ssl_acme_json_stat.stat.exists | bool
-      ansible.builtin.file:
-        path: "{{ traefik_ssl_dir_path }}/acme.json"
-        owner: "{{ traefik_uid }}"
-        group: "{{ traefik_gid }}"
-        mode: "0600"
-
-- name: Ensure Traefik container image is pulled via community.docker.docker_image
-  when: devture_systemd_docker_base_container_image_pull_method == 'ansible-module'
+- name: Ensure Sonarr container image is pulled
   community.docker.docker_image:
-    name: "{{ traefik_container_image }}"
-    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"  # noqa args
+    name: "{{ sonarr_container_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ sonarr_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else sonarr_container_image_force_pull }}"
   register: result
   retries: "{{ devture_playbook_help_container_retries_count }}"
   delay: "{{ devture_playbook_help_container_retries_delay }}"
   until: result is not failed
 
-- name: Ensure Traefik container image is pulled via command
-  when: devture_systemd_docker_base_container_image_pull_method == 'command'
-  ansible.builtin.command:
-    cmd: "{{ devture_systemd_docker_base_host_command_docker }} pull {{ traefik_container_image }}"
-  register: result
-  retries: "{{ devture_playbook_help_container_retries_count }}"
-  delay: "{{ devture_playbook_help_container_retries_delay }}"
-  until: result is not failed
-
-- name: Ensure Traefik container network exists via community.docker.docker_network
-  when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module' and traefik_container_network != 'host'
-  community.docker.docker_network:
-    name: "{{ traefik_container_network }}"
+- name: Ensure Sonarr container network is created
+  community.general.docker_network:
+    name: "{{ sonarr_container_network }}"
     driver: bridge
     driver_options: "{{ devture_systemd_docker_base_container_networks_driver_options }}"
 
-- name: Ensure Traefik container network exists via command
-  when: devture_systemd_docker_base_container_network_creation_method == 'command' and traefik_container_network != 'host'
-  ansible.builtin.command:
-    cmd: "{{ devture_systemd_docker_base_host_command_docker }} network create {% for k, v in devture_systemd_docker_base_container_networks_driver_options %} --opt {{ k }}={{ v }}{% endfor %} {{ traefik_container_network }}"
-  register: network_creation_result
-  failed_when: network_creation_result.rc != 0 and 'already exists' not in network_creation_result.stderr
-
-- name: Ensure Traefik systemd service installed
+- name: Ensure Sonarr systemd installed
   ansible.builtin.template:
-    src: "{{ role_path }}/templates/traefik.service.j2"
-    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ traefik_identifier }}.service"
+    src: "{{ role_path }}/templates/sonarr.service.j2"
+    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
     mode: 0644

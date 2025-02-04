@@ -1,0 +1,52 @@
+#jinja2: lstrip_blocks: "True"
+[Unit]
+Description=Sonarr ({{ sonarr_identifier }})
+{% for service in sonarr_systemd_required_services_list %}
+Requires={{ service }}
+After={{ service }}
+{% endfor %}
+{% for service in sonarr_systemd_wanted_services_list %}
+Wants={{ service }}
+{% endfor %}
+
+[Service]
+Type=simple
+Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop --time={{ sonarr_container_stop_grace_time_seconds }} {{ sonarr_identifier }} 2>/dev/null || true'
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ sonarr_identifier }} 2>/dev/null || true'
+
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
+			--rm \
+			--name={{ sonarr_identifier }} \
+			--log-driver=none \
+			--user={{ valkey_uid }}:{{ valkey_gid }} \
+			--cap-drop=ALL \
+			--read-only \
+			--tmpfs=/tmp:rw,noexec,nosuid,size=100m \
+			--network={{ sonarr_container_network }} \
+			{% if sonarr_container_valkey_bind_port %}
+			-p {{ sonarr_container_valkey_bind_port }}:6379 \
+			{% endif %}
+			--mount type=bind,src={{ sonarr_config_path }}/valkey.conf,dst=/usr/local/etc/valkey/valkey.conf,ro \
+			--mount type=bind,src={{ sonarr_data_path }},dst=/data \
+			{% for arg in sonarr_container_extra_arguments %}
+			{{ arg }} \
+			{% endfor %}
+			{{ sonarr_container_image }} \
+			valkey-server /usr/local/etc/valkey/valkey.conf
+
+{% for network in sonarr_container_additional_networks %}
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ sonarr_identifier }}
+{% endfor %}
+
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ sonarr_identifier }}
+
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop --time={{ sonarr_container_stop_grace_time_seconds }} {{ sonarr_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ sonarr_identifier }} 2>/dev/null || true'
+
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ sonarr_identifier }}
+
+[Install]
+WantedBy=multi-user.target

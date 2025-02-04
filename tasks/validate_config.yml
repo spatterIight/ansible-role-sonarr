@@ -1,56 +1,19 @@
 ---
 
-- name: (Deprecation) Catch and report renamed Traefik settings
+- name: Fail if required Sonarr settings not defined
   ansible.builtin.fail:
-    msg: >-
-      Your configuration contains a variable, which now has a different name.
-      Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
-  when: "item.old in vars"
+    msg: >
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "vars[item] | length == 0"
   with_items:
-    - {'old': 'traefik_ssl_email_address', 'new': 'traefik_config_certificatesResolvers_acme_email'}
-    - {'old': 'traefik_config_letsencrypt_resolver_caServer', 'new': 'traefik_config_certificatesResolvers_acme_caServer'}
-    - {'old': 'traefik_config_letsencrypt_use_staging', 'new': 'traefik_config_certificatesResolvers_acme_use_staging'}
-    - {'old': 'traefik_config_letsencrypt_httpChallenge_entrypoint', 'new': 'traefik_config_certificatesResolvers_acme_httpChallenge_entrypoint'}
-    - {'old': 'traefik_config_certificatesResolvers_acme_email', 'new': '<removed as no longer necessary - see https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/4014>'}
+    - sonarr_identifier
+    - sonarr_uid
+    - sonarr_gid
+    - sonarr_arch
 
-- name: Fail if required Traefik settings not defined
+- name: Fail if Sonarr architecture is not supported
   ansible.builtin.fail:
-    msg: >-
-      You need to define a required configuration setting (`{{ item }}`) for using this role.
-  when: "vars[item] == ''"
-  with_items:
-    - traefik_uid
-    - traefik_gid
-    - traefik_entrypoint_primary
-
-- name: Fail if required Traefik ACME settings not defined
-  fail:
-    msg: >-
-      You need to define a required configuration setting (`{{ item }}`) when enabling ACME SSL certificate resolvers.
-  when: "traefik_config_certificatesResolvers_acme_enabled | bool and vars[item] == ''"
-  with_items:
-    - traefik_config_certificatesResolvers_acme_httpChallenge_entrypoint
-
-- name: Fail if Traefik docker endpoint syntax invalid
-  fail:
-    msg: >-
-      traefik_config_providers_docker_endpoint must look like `unix:///var/run/docker.sock` or `tcp://host:2345`
-  when: "not (traefik_config_providers_docker_endpoint.startswith('unix://') or traefik_config_providers_docker_endpoint.startswith('tcp://'))"
-
-- name: Fail if required Traefik Dashboard settings not defined
-  ansible.builtin.fail:
-    msg: >-
-      You need to define a required configuration setting (`{{ item }}`) for enabling the Traefik Dashboard.
-  when: "traefik_dashboard_enabled | bool and vars[item] == ''"
-  with_items:
-    - traefik_dashboard_hostname
-    - traefik_dashboard_entrypoints
-
-- name: Fail if required Traefik Dashboard Basic Auth settings not defined
-  ansible.builtin.fail:
-    msg: >-
-      You need to define a required configuration setting (`{{ item }}`) for using Basic Auth.
-  when: "traefik_dashboard_basicauth_enabled | bool and vars[item] == ''"
-  with_items:
-    - traefik_dashboard_basicauth_user
-    - traefik_dashboard_basicauth_password
+    msg: >
+      Your configuration specifies a CPU architecture (`{{ sonarr_arch }}`) which is not currently supported.
+      This Sonarr role also does not support self-building yet, so it's not possible to make use of it.
+  when: "sonarr_arch not in ['amd64', 'arm64']"

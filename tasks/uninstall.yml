@@ -1,24 +1,38 @@
 ---
 
-- name: Check existence of Traefik systemd service
+- name: Check existence of Sonarr systemd service
   ansible.builtin.stat:
-    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ traefik_identifier }}.service"
-  register: traefik_service_stat
+    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
+  register: sonarr_service_stat
 
-- when: traefik_service_stat.stat.exists | bool
+- when: sonarr_service_stat.stat.exists | bool
   block:
-    - name: Ensure Traefik systemd service is stopped
+    - name: Ensure Sonarr is stopped
       ansible.builtin.systemd:
-        name: "{{ traefik_identifier }}"
+        name: "{{ sonarr_identifier }}"
         state: stopped
+        enabled: false
         daemon_reload: true
 
-    - name: Ensure Traefik systemd service doesn't exist
+    - name: Ensure Sonarr systemd service doesn't exist
       ansible.builtin.file:
-        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ traefik_identifier }}.service"
+        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
         state: absent
 
-    - name: Remove Traefik directory is removed
-      ansible.builtin.file:
-        path: "{{ traefik_base_path }}"
-        state: absent
+- name: Check existence of Sonarr local data path
+  ansible.builtin.stat:
+    path: "{{ sonarr_data_path }}"
+  register: sonarr_data_path_stat
+
+# We just want to notify the user. Deleting data is too destructive.
+- when: sonarr_data_path_stat.stat.exists | bool
+  name: Notify if Sonarr local data remains
+  ansible.builtin.set_fact:
+    devture_playbook_runtime_messages_list: |
+      {{
+        devture_playbook_runtime_messages_list | default([])
+        +
+        [
+          "Note: You are not using a local Sonarr instance, but some old data remains from before in `{{ sonarr_data_path }}`. Feel free to delete it."
+        ]
+      }}

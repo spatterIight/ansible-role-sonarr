@@ -1,8 +1,9 @@
----
 galaxy_info:
-  author: Slavi Pantaleev
-  company: Devture Ltd
-  description: Traefik role
+  author: mash
+  company: mash
+  role_name: sonarr
+  namespace: mash
+  description: Sonarr
   platforms:
     - name: Debian
       versions:
@@ -10,11 +11,11 @@ galaxy_info:
     - name: Ubuntu
       versions:
         - all
-    - name: "ArchLinux"
+    - name: Archlinux
       versions:
         - all
     - name: EL
       versions:
-        - "7"
+        - 7
   license: GPL-3.0-or-later
   min_ansible_version: '2.1'

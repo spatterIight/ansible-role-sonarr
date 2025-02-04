@@ -1,20 +1,20 @@
 ---
 
-- tags:
-    - setup-all
-    - setup-traefik
-    - install-all
-    - install-traefik
-  block:
-    - when: traefik_enabled | bool
+- block:
+    - when: sonarr_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
 
-    - when: traefik_enabled | bool
+    - when: sonarr_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
-
-- tags:
+  tags:
     - setup-all
-    - setup-traefik
-  block:
-    - when: not traefik_enabled | bool
+    - setup-sonarr
+    - install-all
+    - install-sonarr
+
+- block:
+    - when: not sonarr_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
+  tags:
+    - setup-all
+    - setup-sonarr
