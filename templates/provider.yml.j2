@@ -1,0 +1,30 @@
+#jinja2: lstrip_blocks: "True"
+
+http:
+  middlewares: {{ traefik_config_http_middlewares | to_json }}
+
+  routers:
+    {% for domain in traefik_additional_domains_to_obtain_certificates_for %}
+      {{ domain|replace(".", "-") }}-dummy:
+        rule: Host(`{{ domain }}`)
+        service: noop@internal
+        entryPoints: {{ traefik_additional_domains_to_obtain_certificates_for_entryPoints | to_json }}
+        tls:
+          certResolver: {{ traefik_additional_domains_to_obtain_certificates_for_certResolver | to_json }}
+    {% endfor %}
+
+    {% if traefik_dashboard_enabled %}
+      traefik-dashboard:
+        rule: {{ traefik_dashboard_rule | to_json }}
+        service: api@internal
+        entryPoints: {{ traefik_dashboard_entrypoints | to_json }}
+        {% if traefik_dashboard_tls %}
+        tls:
+          certResolver: {{ traefik_dashboard_tls_certResolver | to_json }}
+        {% else %}
+        tls: false
+        {% endif %}
+        {% if traefik_dashboard_basicauth_enabled %}
+        middlewares: traefik-dashboard-auth
+        {% endif %}
+    {% endif %}

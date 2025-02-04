@@ -1,0 +1,136 @@
+#jinja2: lstrip_blocks: "True"
+# https://doc.traefik.io/traefik/reference/static-configuration/file/
+#
+# To extend this:
+# - tweak the individual variables
+# - use `traefik_configuration_extension_yaml` to override statically defined values or introduce new ones
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: {{ traefik_config_log_level | to_json }}
+
+{% if traefik_config_accessLog_enabled %}
+accessLog: {}
+{% endif %}
+
+api:
+  dashboard: {{ traefik_config_api_dashboard | to_json }}
+
+entryPoints:
+
+{% if traefik_config_entrypoint_web_enabled %}
+  web:
+    address: {{ traefik_config_entrypoint_web_address | to_json }}
+
+    {% if traefik_config_entrypoint_web_forwardedHeaders_enabled %}
+    forwardedHeaders:
+      {% if traefik_config_entrypoint_web_forwardedHeaders_trustedIPs | length > 0 %}
+      trustedIPs: {{ traefik_config_entrypoint_web_forwardedHeaders_trustedIPs | to_json }}
+      {% endif %}
+      {% if traefik_config_entrypoint_web_forwardedHeaders_insecure %}
+      insecure: true
+      {% endif %}
+    {% endif %}
+
+    transport:
+      respondingTimeouts:
+        readTimeout: {{ traefik_config_entrypoint_web_transport_respondingTimeouts_readTimeout | to_json }}
+        writeTimeout: {{ traefik_config_entrypoint_web_transport_respondingTimeouts_writeTimeout | to_json }}
+        idleTimeout: {{ traefik_config_entrypoint_web_transport_respondingTimeouts_idleTimeout | to_json }}
+
+    {% if traefik_config_entrypoint_web_to_web_secure_redirection_enabled %}
+    http:
+      redirections:
+        entryPoint:
+          to: {{ traefik_config_entrypoint_web_to_web_secure_redirection_to | to_json }}
+          scheme: {{ traefik_config_entrypoint_web_to_web_secure_redirection_scheme | to_json }}
+    {% endif %}
+{% endif %}
+
+{% if traefik_config_entrypoint_web_secure_enabled %}
+  {{ traefik_config_entrypoint_web_secure_name }}:
+    address: {{ traefik_config_entrypoint_web_secure_address | to_json }}
+
+    http:
+      middlewares: {{ traefik_config_entrypoint_web_secure_http_middlewares | to_json }}
+
+    {% if traefik_config_entrypoint_web_secure_http3_enabled %}
+    http3: {{ traefik_config_entrypoint_web_secure_http3_config | to_json }}
+    {% endif %}
+
+    {% if traefik_config_entrypoint_web_secure_forwardedHeaders_enabled %}
+    forwardedHeaders:
+      {% if traefik_config_entrypoint_web_secure_forwardedHeaders_trustedIPs | length > 0 %}
+      trustedIPs: {{ traefik_config_entrypoint_web_secure_forwardedHeaders_trustedIPs | to_json }}
+      {% endif %}
+      {% if traefik_config_entrypoint_web_secure_forwardedHeaders_insecure %}
+      insecure: true
+      {% endif %}
+    {% endif %}
+
+    transport:
+      respondingTimeouts:
+        readTimeout: {{ traefik_config_entrypoint_web_secure_transport_respondingTimeouts_readTimeout | to_json }}
+        writeTimeout: {{ traefik_config_entrypoint_web_secure_transport_respondingTimeouts_writeTimeout | to_json }}
+        idleTimeout: {{ traefik_config_entrypoint_web_secure_transport_respondingTimeouts_idleTimeout | to_json }}
+{% endif %}
+
+{% if traefik_config_entrypoint_metrics_enabled %}
+  {{ traefik_config_entrypoint_metrics_name }}:
+    address: {{ traefik_config_entrypoint_metrics_address | to_json }}
+
+    {% if traefik_config_entrypoint_metrics_forwardedHeaders_enabled %}
+    forwardedHeaders:
+      {% if traefik_config_entrypoint_metrics_forwardedHeaders_trustedIPs | length > 0 %}
+      trustedIPs: {{ traefik_config_entrypoint_metrics_forwardedHeaders_trustedIPs | to_json }}
+      {% endif %}
+      {% if traefik_config_entrypoint_metrics_forwardedHeaders_insecure %}
+      insecure: true
+      {% endif %}
+    {% endif %}
+{% endif %}
+
+{% for additional_entrypoint in traefik_additional_entrypoints %}
+  {% set additional_entrypoint_config = ({
+	  'address': ':' + (additional_entrypoint.port | string),
+    }) | combine(additional_entrypoint.config)
+  %}
+
+  {{ additional_entrypoint.name }}: {{ additional_entrypoint_config | to_json }}
+{% endfor %}
+
+certificatesResolvers:
+
+{% if traefik_config_certificatesResolvers_acme_enabled %}
+  {{ traefik_config_certificatesResolvers_acme_name }}:
+    acme:
+      storage: {{ traefik_config_certificatesResolvers_acme_storage | to_json }}
+      caServer: {{ traefik_config_certificatesResolvers_acme_caServer | to_json }}
+      {% if traefik_config_certificatesResolvers_acme_httpChallenge_enabled %}
+      httpChallenge:
+        entrypoint: {{ traefik_config_certificatesResolvers_acme_httpChallenge_entrypoint | to_json }}
+      {% elif traefik_config_certificatesResolvers_acme_dnsChallenge_enabled %}
+      dnsChallenge:
+        provider: {{ traefik_config_certificatesResolvers_acme_dnsChallenge_provider | to_json }}
+        {% if traefik_config_certificatesResolvers_acme_dnsChallenge_delayBeforeCheck %}
+        delayBeforeCheck: {{ traefik_config_certificatesResolvers_acme_dnsChallenge_delayBeforeCheck | to_json }}
+        {% endif %}
+        resolvers: {{ traefik_config_certificatesResolvers_acme_dnsChallenge_resolvers | to_json }}
+      {% endif %}
+{% endif %}
+
+{% if traefik_config_metrics_prometheus_enabled %}
+metrics:
+  prometheus:
+    entryPoint: {{ traefik_config_metrics_prometheus_entrypoint | to_json }}
+{% endif %}
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: {{ traefik_config_providers_docker_network | to_json }}
+    endpoint: {{ traefik_config_providers_docker_endpoint | to_json }}
+  file:
+    filename: /config/provider.yml

@@ -1,0 +1,18 @@
+---
+
+# traefik_dashboard_basicauth_file_contents contains the htpasswd file contents.
+# This is populated at runtime.
+traefik_dashboard_basicauth_file_contents: ''
+
+# Controls whether the forwardedHeaders section appears in the configuration for the web entrypoint
+traefik_config_entrypoint_web_forwardedHeaders_enabled: "{{ traefik_config_entrypoint_web_forwardedHeaders_trustedIPs | length > 0 or traefik_config_entrypoint_web_forwardedHeaders_insecure }}"
+
+# Controls whether the forwardedHeaders section appears in the configuration for the web-secure entrypoint
+traefik_config_entrypoint_web_secure_forwardedHeaders_enabled: "{{ traefik_config_entrypoint_web_secure_forwardedHeaders_trustedIPs | length > 0 or traefik_config_entrypoint_web_secure_forwardedHeaders_insecure }}"
+
+# Controls whether the forwardedHeaders section appears in the configuration for the metrics entrypoint
+traefik_config_entrypoint_metrics_forwardedHeaders_enabled: "{{ traefik_config_entrypoint_metrics_forwardedHeaders_trustedIPs | length > 0 or traefik_config_entrypoint_metrics_forwardedHeaders_insecure }}"
+
+# Specifies whether the docker endpoint is a UNIX socket or not.
+# When a socket is used, we need to run the Traefik container with more privileges, so that it can read via the socket.
+traefik_config_providers_docker_endpoint_is_unix_socket: "{{ traefik_config_providers_docker_endpoint.startswith('unix://') }}"
