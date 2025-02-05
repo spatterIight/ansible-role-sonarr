@@ -9,18 +9,15 @@ sonarr_identifier: sonarr
 sonarr_uid: ''
 sonarr_gid: ''
 
-sonarr_connection_password: ""
-
 sonarr_base_path: "{{ sonarr_identifier }}"
-sonarr_config_path: "{{ sonarr_base_path }}/config"
 sonarr_data_path: "{{ sonarr_base_path }}/data"
 
-sonarr_version: 8.0.1
-sonarr_arch: x86_64
+sonarr_version: 4.0.12
+sonarr_arch: amd64
 
-sonarr_container_image: "{{ sonarr_container_image_registry_prefix }}sonarr/sonarr:{{ sonarr_container_image_tag }}"
-sonarr_container_image_tag: "{{ sonarr_version }}-alpine"
-sonarr_container_image_registry_prefix: docker.io/
+sonarr_container_image: "{{ sonarr_container_image_registry_prefix }}linuxserver/sonarr:{{ sonarr_container_image_tag }}"
+sonarr_container_image_tag: "{{ sonarr_version }}"
+sonarr_container_image_registry_prefix: lscr.io/
 sonarr_container_image_force_pull: "{{ sonarr_container_image.endswith(':latest') }}"
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.

@@ -1,20 +1,25 @@
 ---
 
-- block:
-    - when: sonarr_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-
-    - when: sonarr_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+- name: Install Sonarr Analytics
   tags:
     - setup-all
     - setup-sonarr
     - install-all
     - install-sonarr
+  block:
+    - name: Run Sonarr Analyics validation tasks
+      when: sonarr_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
 
-- block:
-    - when: not sonarr_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
+    - name: Run Sonarr Analyics installation tasks
+      when: sonarr_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+
+- name: Uninstall Sonarr Analytics
   tags:
     - setup-all
     - setup-sonarr
+  block:
+    - name: Run Sonarr Analyics uninstallation tasks
+      when: not sonarr_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

@@ -1,38 +1,26 @@
 ---
 
-- name: Check existence of Sonarr systemd service
+- name: Check existence of Sonarr Analytics systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
   register: sonarr_service_stat
 
-- when: sonarr_service_stat.stat.exists | bool
+- name: Uninstall Sonarr Analytics systemd services and files
+  when: sonarr_service_stat.stat.exists | bool
   block:
-    - name: Ensure Sonarr is stopped
-      ansible.builtin.systemd:
+    - name: Ensure Sonarr Analytics systemd service is stopped
+      ansible.builtin.service:
         name: "{{ sonarr_identifier }}"
         state: stopped
         enabled: false
         daemon_reload: true
 
-    - name: Ensure Sonarr systemd service doesn't exist
+    - name: Ensure Sonarr Analytics systemd service does not exist
       ansible.builtin.file:
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
         state: absent
 
-- name: Check existence of Sonarr local data path
-  ansible.builtin.stat:
-    path: "{{ sonarr_data_path }}"
-  register: sonarr_data_path_stat
-
-# We just want to notify the user. Deleting data is too destructive.
-- when: sonarr_data_path_stat.stat.exists | bool
-  name: Notify if Sonarr local data remains
-  ansible.builtin.set_fact:
-    devture_playbook_runtime_messages_list: |
-      {{
-        devture_playbook_runtime_messages_list | default([])
-        +
-        [
-          "Note: You are not using a local Sonarr instance, but some old data remains from before in `{{ sonarr_data_path }}`. Feel free to delete it."
-        ]
-      }}
+    - name: Ensure Sonarr Analytics path doesn't exist
+      ansible.builtin.file:
+        path: "{{ sonarr_base_path }}"
+        state: absent

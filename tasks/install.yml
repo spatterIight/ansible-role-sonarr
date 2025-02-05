@@ -4,23 +4,23 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: 0750
+    mode: "0750"
     owner: "{{ sonarr_uid }}"
     group: "{{ sonarr_gid }}"
   with_items:
     - "{{ sonarr_base_path }}"
-    - "{{ sonarr_config_path }}"
     - "{{ sonarr_data_path }}"
 
-- name: Ensure Sonarr environment variables file created
+- name: Ensure Sonarr support files created
   ansible.builtin.template:
     src: "{{ role_path }}/templates/{{ item }}.j2"
-    dest: "{{ sonarr_config_path }}/{{ item }}"
-    mode: 0640
+    dest: "{{ sonarr_base_path }}/{{ item }}"
     owner: "{{ sonarr_uid }}"
     group: "{{ sonarr_gid }}"
+    mode: "0640"
   with_items:
-    - "sonarr.conf"
+    - env
+    - labels
 
 - name: Ensure Sonarr container image is pulled
   community.docker.docker_image:
@@ -41,6 +41,6 @@
 
 - name: Ensure Sonarr systemd installed
   ansible.builtin.template:
-    src: "{{ role_path }}/templates/sonarr.service.j2"
+    src: "{{ role_path }}/templates/systemd/sonarr.service.j2"
     dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
-    mode: 0644
+    mode: "0644"
