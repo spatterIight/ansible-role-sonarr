@@ -32,7 +32,7 @@ traefik.http.routers.{{ sonarr_identifier }}.tls={{ sonarr_container_labels_trae
 traefik.http.routers.{{ sonarr_identifier }}.tls.certResolver={{ sonarr_container_labels_traefik_tls_certResolver }}
 {% endif %}
 
-traefik.http.services.{{ sonarr_identifier }}.loadbalancer.server.port={{ sonarr_environment_variable_port }}
+traefik.http.services.{{ sonarr_identifier }}.loadbalancer.server.port={{ sonarr_container_http_port }}
 {% endif %}
 
 {{ sonarr_container_labels_additional_labels }}

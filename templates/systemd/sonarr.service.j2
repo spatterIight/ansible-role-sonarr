@@ -24,7 +24,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--read-only \
 			--network={{ sonarr_container_network }} \
 			{% if sonarr_container_http_bind_port %}
-			-p {{ sonarr_container_http_bind_port }}:8989 \
+			-p {{ sonarr_container_http_bind_port }}:{{ sonarr_container_http_port }} \
 			{% endif %}
 			--env-file={{ sonarr_base_path }}/env \
 			--label-file={{ sonarr_base_path }}/labels \
