@@ -32,7 +32,8 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			{% for volume in sonarr_container_additional_volumes %}
 			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
 			{% endfor %}
-			--tmpfs=/run:rw,exec,nosuid,size=128m \ {# https://docs.linuxserver.io/misc/read-only/#how #}
+			# https://docs.linuxserver.io/misc/read-only/#how
+			--tmpfs=/run:rw,exec,nosuid,size=128m \
 			{% for arg in sonarr_container_extra_arguments %}
 			{{ arg }} \
 			{% endfor %}
