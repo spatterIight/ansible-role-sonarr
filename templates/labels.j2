@@ -1,1 +1,38 @@
-{{ sonarr_labels_additional_labels }}
+{% if sonarr_container_labels_traefik_enabled %}
+traefik.enable=true
+
+{% if sonarr_container_labels_traefik_docker_network %}
+traefik.docker.network={{ sonarr_container_labels_traefik_docker_network }}
+{% endif %}
+
+{% set middlewares = [] %}
+
+{% if sonarr_container_labels_traefik_path_prefix != '/' %}
+traefik.http.middlewares.{{ sonarr_identifier }}-slashless-redirect.redirectregex.regex=^({{ sonarr_container_labels_traefik_path_prefix | quote }})$
+traefik.http.middlewares.{{ sonarr_identifier }}-slashless-redirect.redirectregex.replacement=${1}/
+{% set middlewares = middlewares + [sonarr_identifier + '-slashless-redirect'] %}
+{% endif %}
+
+{% if sonarr_container_labels_traefik_path_prefix != '/' %}
+traefik.http.middlewares.{{ sonarr_identifier }}-strip-prefix.stripprefix.prefixes={{ sonarr_container_labels_traefik_path_prefix }}
+{% set middlewares = middlewares + [sonarr_identifier + '-strip-prefix'] %}
+{% endif %}
+
+traefik.http.routers.{{ sonarr_identifier }}.rule={{ sonarr_container_labels_traefik_rule }}
+{% if sonarr_container_labels_traefik_priority | int > 0 %}
+traefik.http.routers.{{ sonarr_identifier }}.priority={{ sonarr_container_labels_traefik_priority }}
+{% endif %}
+traefik.http.routers.{{ sonarr_identifier }}.service={{ sonarr_identifier }}
+{% if middlewares | length > 0 %}
+traefik.http.routers.{{ sonarr_identifier }}.middlewares={{ middlewares | join(',') }}
+{% endif %}
+traefik.http.routers.{{ sonarr_identifier }}.entrypoints={{ sonarr_container_labels_traefik_entrypoints }}
+traefik.http.routers.{{ sonarr_identifier }}.tls={{ sonarr_container_labels_traefik_tls | to_json }}
+{% if sonarr_container_labels_traefik_tls %}
+traefik.http.routers.{{ sonarr_identifier }}.tls.certResolver={{ sonarr_container_labels_traefik_tls_certResolver }}
+{% endif %}
+
+traefik.http.services.{{ sonarr_identifier }}.loadbalancer.server.port={{ sonarr_environment_variable_port }}
+{% endif %}
+
+{{ sonarr_container_labels_additional_labels }}
