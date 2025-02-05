@@ -21,6 +21,11 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--log-driver=none \
 			--user={{ sonarr_uid }}:{{ sonarr_gid }} \
 			--cap-drop=ALL \
+			--cap-add=SETUID \
+			--cap-add=SETGID \
+			--cap-add=CHOWN \
+			--cap-add=FOWNER \
+			--cap-add=DAC_OVERRIDE \
 			--read-only \
 			--network={{ sonarr_container_network }} \
 			{% if sonarr_container_http_bind_port %}
