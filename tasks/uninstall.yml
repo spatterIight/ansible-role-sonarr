@@ -1,26 +1,26 @@
 ---
 
-- name: Check existence of Sonarr Analytics systemd service
+- name: Check existence of Sonarr systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
   register: sonarr_service_stat
 
-- name: Uninstall Sonarr Analytics systemd services and files
+- name: Uninstall Sonarr systemd services and files
   when: sonarr_service_stat.stat.exists | bool
   block:
-    - name: Ensure Sonarr Analytics systemd service is stopped
+    - name: Ensure Sonarr systemd service is stopped
       ansible.builtin.service:
         name: "{{ sonarr_identifier }}"
         state: stopped
         enabled: false
         daemon_reload: true
 
-    - name: Ensure Sonarr Analytics systemd service does not exist
+    - name: Ensure Sonarr systemd service does not exist
       ansible.builtin.file:
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
         state: absent
 
-    - name: Ensure Sonarr Analytics path doesn't exist
+    - name: Ensure Sonarr path doesn't exist
       ansible.builtin.file:
         path: "{{ sonarr_base_path }}"
         state: absent
