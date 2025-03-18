@@ -10,7 +10,6 @@
   with_items:
     - "{{ sonarr_base_path }}"
     - "{{ sonarr_data_path }}"
-    - "{{ sonarr_download_path }}"
 
 - name: Ensure Sonarr support files created
   ansible.builtin.template:
