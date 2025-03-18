@@ -10,7 +10,7 @@ sonarr_uid: ''
 sonarr_gid: ''
 sonarr_timezone: 'Etc/UTC'
 
-sonarr_version: 4.0.12
+sonarr_version: 4.0.14
 sonarr_arch: amd64
 
 # The hostname at which sonarr is served.
