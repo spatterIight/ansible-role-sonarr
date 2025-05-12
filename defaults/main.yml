@@ -10,6 +10,7 @@ sonarr_uid: ''
 sonarr_gid: ''
 sonarr_timezone: 'Etc/UTC'
 
+# renovate: datasource=docker depName=lscr.io/linuxserver/sonarr versioning=semver
 sonarr_version: 4.0.14
 sonarr_arch: amd64
 
