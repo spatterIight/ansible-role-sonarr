@@ -1,21 +1,19 @@
 ---
-
 # Project source code URL: https://github.com/Sonarr/Sonarr
 
 sonarr_enabled: true
 
 sonarr_identifier: sonarr
 
-sonarr_uid: ''
-sonarr_gid: ''
-sonarr_timezone: 'Etc/UTC'
+sonarr_uid: ""
+sonarr_gid: ""
+sonarr_timezone: "Etc/UTC"
 
 # renovate: datasource=docker depName=lscr.io/linuxserver/sonarr versioning=semver
 sonarr_version: 4.0.15
-sonarr_arch: amd64
 
 # The hostname at which sonarr is served.
-sonarr_hostname: ''
+sonarr_hostname: ""
 
 # The path at which sonarr is served.
 # This value must either be `/` or not end with a slash (e.g. `/sonarr`).
@@ -75,7 +73,7 @@ sonarr_container_labels_traefik_rule: "Host(`{{ sonarr_container_labels_traefik_
 sonarr_container_labels_traefik_priority: 0
 sonarr_container_labels_traefik_entrypoints: web-secure
 sonarr_container_labels_traefik_tls: "{{ sonarr_container_labels_traefik_entrypoints != 'web' }}"
-sonarr_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+sonarr_container_labels_traefik_tls_certResolver: default # noqa var-naming
 
 # sonarr_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.
@@ -84,7 +82,7 @@ sonarr_container_labels_traefik_tls_certResolver: default  # noqa var-naming
 # sonarr_container_labels_additional_labels: |
 #   my.label=1
 #   another.label="here"
-sonarr_container_labels_additional_labels: ''
+sonarr_container_labels_additional_labels: ""
 
 # sonarr_container_additional_environment_variables contains a multiline string with additional environment variables to pass to the container.
 #
@@ -92,7 +90,7 @@ sonarr_container_labels_additional_labels: ''
 # sonarr_container_additional_environment_variables: |
 #   VAR=1
 #   ANOTHER=value
-sonarr_container_additional_environment_variables: ''
+sonarr_container_additional_environment_variables: ""
 
 # A list of additional "volumes" to mount in the container.
 #
