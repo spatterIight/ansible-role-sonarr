@@ -32,7 +32,9 @@ sonarr_data_path: "{{ sonarr_base_path }}/data"
 
 sonarr_container_image: "{{ sonarr_container_image_registry_prefix }}linuxserver/sonarr:{{ sonarr_container_image_tag }}"
 sonarr_container_image_tag: "{{ sonarr_version }}"
-sonarr_container_image_registry_prefix: lscr.io/
+sonarr_container_image_registry_prefix: "{{ sonarr_container_image_registry_prefix_upstream }}"
+sonarr_container_image_registry_prefix_upstream: "{{ sonarr_container_image_registry_prefix_upstream_default }}"
+sonarr_container_image_registry_prefix_upstream_default: lscr.io/
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 sonarr_container_network: "{{ sonarr_identifier }}"
