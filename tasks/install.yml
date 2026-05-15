@@ -1,4 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2025 spatterIight
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -26,13 +28,11 @@
     - env
     - labels
 
-- name: Ensure Sonarr container image is pulled via community.docker.docker_image
+- name: Ensure Sonarr container image is pulled via community.docker.docker_image_pull
   when: devture_systemd_docker_base_container_image_pull_method == 'ansible-module'
-  community.docker.docker_image:
+  community.docker.docker_image_pull:
     name: "{{ sonarr_container_image }}"
-    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
-    force_source: "{{ sonarr_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
-    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else sonarr_container_image_force_pull }}"
+    pull: always
   register: image_pull_result
   retries: "{{ devture_playbook_help_container_retries_count }}"
   delay: "{{ devture_playbook_help_container_retries_delay }}"
