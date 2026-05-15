@@ -13,12 +13,14 @@
 sonarr_enabled: true
 
 sonarr_identifier: sonarr
-
-sonarr_uid: ""
-sonarr_gid: ""
+sonarr_base_path: "/{{ sonarr_identifier }}"
+sonarr_data_path: "{{ sonarr_base_path }}/data"
 
 # renovate: datasource=docker depName=lscr.io/linuxserver/sonarr versioning=semver
 sonarr_version: 4.0.17
+
+sonarr_uid: ""
+sonarr_gid: ""
 
 # The hostname at which sonarr is served.
 sonarr_hostname: ""
@@ -26,9 +28,6 @@ sonarr_hostname: ""
 # The path at which sonarr is served.
 # This value must either be `/` or not end with a slash (e.g. `/sonarr`).
 sonarr_path_prefix: /
-
-sonarr_base_path: "{{ sonarr_identifier }}"
-sonarr_data_path: "{{ sonarr_base_path }}/data"
 
 sonarr_container_image: "{{ sonarr_container_image_registry_prefix }}linuxserver/sonarr:{{ sonarr_container_image_tag }}"
 sonarr_container_image_tag: "{{ sonarr_version }}"

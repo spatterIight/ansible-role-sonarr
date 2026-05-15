@@ -1,4 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2025 spatterIight
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -23,7 +25,42 @@
         path: "{{ devture_systemd_docker_base_systemd_path }}/{{ sonarr_identifier }}.service"
         state: absent
 
-    - name: Ensure Sonarr path doesn't exist
+    - name: Ensure Sonarr support files do not exist
       ansible.builtin.file:
-        path: "{{ sonarr_base_path }}"
+        path: "{{ sonarr_base_path }}/{{ item }}"
         state: absent
+      with_items:
+        - env
+        - labels
+
+    - name: Ensure Sonarr local data path does not exist if empty
+      ansible.builtin.command:
+        cmd: "rmdir {{ sonarr_data_path }}"
+      register: sonarr_data_path_deletion_result
+      changed_when: sonarr_data_path_deletion_result.rc == 0
+      failed_when: false
+
+    - name: Ensure Sonarr base path does not exist if empty
+      ansible.builtin.command:
+        cmd: "rmdir {{ sonarr_base_path }}"
+      register: sonarr_base_path_deletion_result
+      changed_when: sonarr_base_path_deletion_result.rc == 0
+      failed_when: false
+
+- name: Check existence of Sonarr local data path
+  ansible.builtin.stat:
+    path: "{{ sonarr_data_path }}"
+  register: sonarr_data_path_stat
+
+# We just want to notify the user. Deleting data is too destructive.
+- name: Inject the message about the remaining Sonarr local data path
+  when: sonarr_data_path_stat.stat.exists | bool
+  ansible.builtin.set_fact:
+    devture_playbook_runtime_messages_list: |
+      {{
+        devture_playbook_runtime_messages_list | default([])
+        +
+        [
+          "Note: As the local Sonarr instance has been removed, some old data remains in `" + sonarr_data_path + "`. Feel free to delete it."
+        ]
+      }}
