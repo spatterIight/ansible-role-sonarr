@@ -1,28 +1,28 @@
+# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2025 spatterIight
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Install Sonarr
+- name: Perform Sonarr installation tasks
+  when: sonarr_enabled | bool
   tags:
     - setup-all
     - setup-sonarr
     - install-all
     - install-sonarr
   block:
-    - name: Run Sonarr validation tasks
-      when: sonarr_enabled | bool
+    - name: Validate Sonarr configuration
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-
-    - name: Run Sonarr installation tasks
-      when: sonarr_enabled | bool
+    - name: Install Sonarr
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
-- name: Uninstall Sonarr
+- name: Perform Sonarr uninstallation tasks
+  when: not sonarr_enabled | bool
   tags:
     - setup-all
     - setup-sonarr
   block:
-    - name: Run Sonarr uninstallation tasks
-      when: not sonarr_enabled | bool
+    - name: Uninstall Sonarr
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
