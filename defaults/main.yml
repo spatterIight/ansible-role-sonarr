@@ -35,9 +35,6 @@ sonarr_container_image_registry_prefix: "{{ sonarr_container_image_registry_pref
 sonarr_container_image_registry_prefix_upstream: "{{ sonarr_container_image_registry_prefix_upstream_default }}"
 sonarr_container_image_registry_prefix_upstream_default: lscr.io/
 
-# The base container network. It will be auto-created by this role if it doesn't exist already.
-sonarr_container_network: "{{ sonarr_identifier }}"
-
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
 sonarr_container_additional_networks: "{{ (sonarr_container_additional_networks_default + sonarr_container_additional_networks_auto + sonarr_container_additional_networks_custom) | unique }}"
@@ -56,6 +53,12 @@ sonarr_systemd_wanted_services_list: "{{ (sonarr_systemd_wanted_services_list_de
 sonarr_systemd_wanted_services_list_default: []
 sonarr_systemd_wanted_services_list_auto: []
 sonarr_systemd_wanted_services_list_custom: []
+
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+sonarr_container_network: "{{ sonarr_identifier }}"
+
+# Control if the container network is deleted on uninstalling.
+sonarr_container_network_deletion_enabled: true
 
 # The port Sonarr is running on inside the container
 sonarr_container_http_port: 8989

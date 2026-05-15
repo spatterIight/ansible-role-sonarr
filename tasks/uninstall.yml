@@ -47,6 +47,25 @@
       changed_when: sonarr_base_path_deletion_result.rc == 0
       failed_when: false
 
+    - name: Ensure Sonarr container network does not exist
+      when: sonarr_container_network_deletion_enabled
+      block:
+        - name: Ensure Sonarr container network does not exist via community.docker.docker_network
+          when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
+          community.docker.docker_network:
+            name: "{{ sonarr_container_network }}"
+            state: absent
+          register: sonarr_network_deletion_result
+
+        - name: Ensure Sonarr container network does not exist via ansible.builtin.command
+          when: devture_systemd_docker_base_container_network_creation_method == 'command'
+          ansible.builtin.command:
+            cmd: >-
+              {{ devture_systemd_docker_base_host_command_docker }} network rm
+              {{ sonarr_container_network }}
+          register: sonarr_network_deletion_result
+          changed_when: sonarr_container_network in sonarr_network_deletion_result.stdout
+
 - name: Check existence of Sonarr local data path
   ansible.builtin.stat:
     path: "{{ sonarr_data_path }}"
