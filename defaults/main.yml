@@ -1,16 +1,26 @@
+# SPDX-FileCopyrightText: 2023, 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023-2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2025 MASH project contributors
+# SPDX-FileCopyrightText: 2025 spatterIight
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ---
 # Project source code URL: https://github.com/Sonarr/Sonarr
 
 sonarr_enabled: true
 
 sonarr_identifier: sonarr
-
-sonarr_uid: ""
-sonarr_gid: ""
-sonarr_timezone: "Etc/UTC"
+sonarr_base_path: "/{{ sonarr_identifier }}"
+sonarr_data_path: "{{ sonarr_base_path }}/data"
 
 # renovate: datasource=docker depName=lscr.io/linuxserver/sonarr versioning=semver
 sonarr_version: 4.0.17
+
+sonarr_uid: ""
+sonarr_gid: ""
 
 # The hostname at which sonarr is served.
 sonarr_hostname: ""
@@ -19,16 +29,11 @@ sonarr_hostname: ""
 # This value must either be `/` or not end with a slash (e.g. `/sonarr`).
 sonarr_path_prefix: /
 
-sonarr_base_path: "{{ sonarr_identifier }}"
-sonarr_data_path: "{{ sonarr_base_path }}/data"
-
 sonarr_container_image: "{{ sonarr_container_image_registry_prefix }}linuxserver/sonarr:{{ sonarr_container_image_tag }}"
 sonarr_container_image_tag: "{{ sonarr_version }}"
-sonarr_container_image_registry_prefix: lscr.io/
-sonarr_container_image_force_pull: "{{ sonarr_container_image.endswith(':latest') }}"
-
-# The base container network. It will be auto-created by this role if it doesn't exist already.
-sonarr_container_network: "{{ sonarr_identifier }}"
+sonarr_container_image_registry_prefix: "{{ sonarr_container_image_registry_prefix_upstream }}"
+sonarr_container_image_registry_prefix_upstream: "{{ sonarr_container_image_registry_prefix_upstream_default }}"
+sonarr_container_image_registry_prefix_upstream_default: lscr.io/
 
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
@@ -36,11 +41,6 @@ sonarr_container_additional_networks: "{{ (sonarr_container_additional_networks_
 sonarr_container_additional_networks_default: []
 sonarr_container_additional_networks_auto: []
 sonarr_container_additional_networks_custom: []
-
-# Controls how long to wait for the container to stop gracefully before killing it.
-# Because `devture_systemd_docker_base_container_stop_grace_time_seconds` may be quite short and databases are more important to stop gracefully,
-# we default to at least 30 seconds.
-sonarr_container_stop_grace_time_seconds: "{{ [devture_systemd_docker_base_container_stop_grace_time_seconds, 30] | max }}"
 
 # List of systemd services that the Sonarr systemd service depends on
 sonarr_systemd_required_services_list: "{{ (sonarr_systemd_required_services_list_default + sonarr_systemd_required_services_list_auto + sonarr_systemd_required_services_list_custom) | unique }}"
@@ -53,6 +53,12 @@ sonarr_systemd_wanted_services_list: "{{ (sonarr_systemd_wanted_services_list_de
 sonarr_systemd_wanted_services_list_default: []
 sonarr_systemd_wanted_services_list_auto: []
 sonarr_systemd_wanted_services_list_custom: []
+
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+sonarr_container_network: "{{ sonarr_identifier }}"
+
+# Control if the container network is deleted on uninstalling.
+sonarr_container_network_deletion_enabled: true
 
 # The port Sonarr is running on inside the container
 sonarr_container_http_port: 8989
@@ -84,14 +90,6 @@ sonarr_container_labels_traefik_tls_certResolver: default # noqa var-naming
 #   another.label="here"
 sonarr_container_labels_additional_labels: ""
 
-# sonarr_container_additional_environment_variables contains a multiline string with additional environment variables to pass to the container.
-#
-# Example:
-# sonarr_container_additional_environment_variables: |
-#   VAR=1
-#   ANOTHER=value
-sonarr_container_additional_environment_variables: ""
-
 # A list of additional "volumes" to mount in the container.
 #
 # See the `--mount` documentation for the `docker run` command.
@@ -109,3 +107,55 @@ sonarr_container_additional_volumes: []
 
 # A list of extra arguments to pass to the container
 sonarr_container_extra_arguments: []
+
+# Controls how long to wait for the container to stop gracefully before killing it.
+sonarr_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
+
+# Controls how long the pre-start cleanup should wait for stale container-name release
+# before failing startup explicitly.
+sonarr_container_cleanup_timeout_seconds: "{{ devture_systemd_docker_base_container_cleanup_timeout_seconds }}"
+
+# Controls the delay between pre-start cleanup retries.
+sonarr_container_cleanup_retry_delay_seconds: "{{ devture_systemd_docker_base_container_cleanup_retry_delay_seconds }}"
+
+# Shell command used in the systemd pre-start phase to deterministically remove a stale
+# container and wait until Docker releases its name.
+sonarr_container_cleanup_command: |
+  i=0;
+  while [ "$i" -lt {{ sonarr_container_cleanup_timeout_seconds }} ]; do
+  {{ devture_systemd_docker_base_host_command_docker }} stop -t {{ sonarr_container_stop_grace_time_seconds }} {{ sonarr_identifier }} >/dev/null 2>&1 || true;
+  {{ devture_systemd_docker_base_host_command_docker }} rm -f {{ sonarr_identifier }} >/dev/null 2>&1 || true;
+  if {{ devture_systemd_docker_base_host_command_docker }} container inspect {{ sonarr_identifier }} >/dev/null 2>&1; then
+  i=$((i + 1));
+  sleep {{ sonarr_container_cleanup_retry_delay_seconds }};
+  continue;
+  fi;
+  if {{ devture_systemd_docker_base_host_command_docker }} info >/dev/null 2>&1; then
+  exit 0;
+  fi;
+  echo "Failed to query Docker daemon while cleaning up {{ sonarr_identifier }}" >&2;
+  exit 1;
+  done;
+  echo "Failed to remove stale container {{ sonarr_identifier }} after {{ sonarr_container_cleanup_timeout_seconds }} attempts" >&2;
+  exit 1
+
+# Specify the timezone
+sonarr_timezone: "Etc/UTC"
+
+# sonarr_environment_variables_additional_variables contains a multiline string with additional environment variables to pass to the container.
+#
+# Example:
+# sonarr_environment_variables_additional_variables: |
+#   VAR=1
+#   ANOTHER=value
+sonarr_environment_variables_additional_variables: ""
+
+# sonarr_restart_necessary controls whether the Sonarr systemd
+# service will be restarted (when true) or merely started (when false) by the
+# systemd service manager role (when conditional restart is enabled).
+#
+# This value is automatically computed during installation based on whether
+# any configuration files, the systemd service file, or the container image changed.
+# The default of `false` means "no restart needed" — appropriate when the role's
+# installation tasks haven't run (e.g., due to --tags skipping them).
+sonarr_restart_necessary: false
