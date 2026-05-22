@@ -3,44 +3,44 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Verify
+- name: Verify Sonarr systemd service
   hosts: all
   become: true
   gather_facts: false
   tasks:
-    - name: Wait for sonarr service to become active (up to 180s)
+    - name: Wait for Sonarr service to become active (up to 180s)
       ansible.builtin.systemd:
         name: sonarr.service
-      register: svc
-      until: svc.status.ActiveState == 'active'
+      register: sonarr_service
+      until: sonarr_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
 
-    - name: Assert sonarr service is active
+    - name: Assert Sonarr service is active
       ansible.builtin.assert:
-        that: svc.status.ActiveState == 'active'
-        fail_msg: "sonarr.service not active ({{ svc.status.ActiveState }})"
+        that: sonarr_service.status.ActiveState == 'active'
+        fail_msg: "sonarr.service not active ({{ sonarr_service.status.ActiveState }})"
         success_msg: "sonarr.service is active"
 
-    - name: Wait for sonarr HTTP endpoint to respond (up to 10m)
+    - name: Wait for Sonarr HTTP endpoint to respond (up to 10m)
       ansible.builtin.uri:
         url: "http://localhost:8989/"
         method: GET
         status_code: [200, 302]
         follow_redirects: none
-      register: ep
-      until: ep.status in [200, 302]
+      register: sonarr_endpoint
+      until: sonarr_endpoint.status in [200, 302]
       retries: 120
       delay: 5
 
-    - name: Assert sonarr HTTP endpoint responds
+    - name: Assert Sonarr HTTP endpoint responds
       ansible.builtin.assert:
-        that: ep.status in [200, 302]
-        fail_msg: "sonarr did not respond as expected ({{ ep.status | default('no response') }})"
-        success_msg: "sonarr responded with {{ ep.status }}"
+        that: sonarr_endpoint.status in [200, 302]
+        fail_msg: "Sonarr did not respond as expected ({{ sonarr_endpoint.status | default('no response') }})"
+        success_msg: "Sonarr responded with {{ sonarr_endpoint.status }}"
 
-    - name: Show service status summary
+    - name: Show Sonarr systemd service status summary
       ansible.builtin.debug:
         msg:
-          - "sonarr systemd: {{ svc.status.ActiveState }}"
-          - "sonarr HTTP: {{ ep.status }}"
+          - "Sonarr systemd: {{ sonarr_service.status.ActiveState }}"
+          - "Sonarr HTTP: {{ sonarr_endpoint.status }}"
