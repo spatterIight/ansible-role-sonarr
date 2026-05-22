@@ -22,10 +22,10 @@ sonarr_version: 4.0.17
 sonarr_uid: ""
 sonarr_gid: ""
 
-# The hostname at which sonarr is served.
+# The hostname at which Sonarr is served.
 sonarr_hostname: ""
 
-# The path at which sonarr is served.
+# The path at which Sonarr is served.
 # This value must either be `/` or not end with a slash (e.g. `/sonarr`).
 sonarr_path_prefix: /
 
