@@ -17,7 +17,7 @@ sonarr_base_path: "/{{ sonarr_identifier }}"
 sonarr_data_path: "{{ sonarr_base_path }}/data"
 
 # renovate: datasource=docker depName=lscr.io/linuxserver/sonarr versioning=semver
-sonarr_version: 4.0.17
+sonarr_version: 4.0.18
 
 sonarr_uid: ""
 sonarr_gid: ""
