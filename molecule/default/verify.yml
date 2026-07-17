@@ -22,6 +22,12 @@
         fail_msg: "sonarr.service not active ({{ sonarr_service.status.ActiveState }})"
         success_msg: "sonarr.service is active"
 
+    - name: Retrieve Sonarr service log for debugging
+      when: sonarr_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu sonarr.service
+      changed_when: false
+
     - name: Wait for Sonarr HTTP endpoint to respond (up to 10m)
       ansible.builtin.uri:
         url: "http://localhost:8989/"

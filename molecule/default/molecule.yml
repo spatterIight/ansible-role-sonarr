@@ -28,6 +28,10 @@ provisioner:
   inventory:
     group_vars:
       all:
+        # Helper variables
+        sonarr_debug_service_enabled: false
+
+        # Variables for Sonarr
         sonarr_uid: 1000
         sonarr_gid: 1000
         sonarr_hostname: sonarr
