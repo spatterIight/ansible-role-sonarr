@@ -32,6 +32,7 @@ provisioner:
       all:
         # Helper variables
         sonarr_debug_service_enabled: false
+        sonarr_restarts_check_enabled: true
 
         # Where the extra bind-mount that exercises
         # `sonarr_container_additional_volumes` comes from, and what it holds.
