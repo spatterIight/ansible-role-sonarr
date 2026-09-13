@@ -182,7 +182,7 @@
 
         - name: Inspect the Sonarr container
           ansible.builtin.command:
-            cmd: "docker container inspect {{ sonarr_defaults.sonarr_identifier }}"
+            cmd: docker container inspect sonarr
           register: sonarr_container_raw
           changed_when: false
 
