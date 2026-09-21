@@ -80,6 +80,16 @@
           changed_when: false
           loop: "{{ sonarr_verify_units }}"
 
+        - name: Inspect Sonarr container
+          ansible.builtin.command:
+            cmd: docker container inspect sonarr
+          register: sonarr_container_raw
+          changed_when: false
+
+        - name: Parse the Sonarr container definition
+          ansible.builtin.set_fact:
+            sonarr_container: "{{ (sonarr_container_raw.stdout | from_json)[0] }}"
+
         # The published port is `sonarr_container_http_port` on both sides, so an
         # application that ignored the role's port setting and stayed on the 8989
         # the image exposes would leave this port answering nothing at all.
@@ -179,16 +189,6 @@
               The container reports UTC offset {{ sonarr_container_timezone.stdout | trim }}, not the
               {{ sonarr_molecule_expected_timezone_offset }} that sonarr_timezone={{ sonarr_timezone }} calls for
             success_msg: "The container runs at UTC offset {{ sonarr_molecule_expected_timezone_offset }}, as sonarr_timezone asks"
-
-        - name: Inspect the Sonarr container
-          ansible.builtin.command:
-            cmd: docker container inspect sonarr
-          register: sonarr_container_raw
-          changed_when: false
-
-        - name: Keep the parts of the container definition worth asserting on
-          ansible.builtin.set_fact:
-            sonarr_container: "{{ (sonarr_container_raw.stdout | from_json) | first }}"
 
         - name: Assert the role's environment reached the container
           ansible.builtin.assert:
