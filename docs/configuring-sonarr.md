@@ -16,55 +16,55 @@ SPDX-FileCopyrightText: 2024-2026 Suguru Hirahara
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Setting up Radarr
+# Setting up Sonarr
 
-This is an [Ansible](https://www.ansible.com/) role which installs [Radarr](https://radarr.video/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [Sonarr](https://sonarr.video/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
-Radarr is a movie organizer/manager for Usenet and BitTorrent users.
+Sonarr is a movie organizer/manager for Usenet and BitTorrent users.
 
-See the project's [documentation](https://wiki.servarr.com/radarr) to learn what Radarr does and why it might be useful to you.
+See the project's [documentation](https://wiki.servarr.com/sonarr) to learn what Sonarr does and why it might be useful to you.
 
 ## Adjusting the playbook configuration
 
-To enable Radarr with this role, add the following configuration to your `vars.yml` file.
+To enable Sonarr with this role, add the following configuration to your `vars.yml` file.
 
 **Note**: the path should be something like `inventory/host_vars/mash.example.com/vars.yml` if you use the [MASH Ansible playbook](https://github.com/mother-of-all-self-hosting/mash-playbook).
 
 ```yaml
 ########################################################################
 #                                                                      #
-# radarr                                                               #
+# sonarr                                                               #
 #                                                                      #
 ########################################################################
 
-radarr_enabled: true
+sonarr_enabled: true
 
 ########################################################################
 #                                                                      #
-# /radarr                                                              #
+# /sonarr                                                              #
 #                                                                      #
 ########################################################################
 ```
 
 ### Set the hostname
 
-To enable Radarr you need to set the hostname as well. To do so, add the following configuration to your `vars.yml` file. Make sure to replace `example.com` with your own value.
+To enable Sonarr you need to set the hostname as well. To do so, add the following configuration to your `vars.yml` file. Make sure to replace `example.com` with your own value.
 
 ```yaml
-radarr_hostname: "example.com"
+sonarr_hostname: "example.com"
 ```
 
 After adjusting the hostname, make sure to adjust your DNS records to point the domain to your server.
 
 >[!NOTE]
-> The `radarr_path_prefix` variable can be adjusted to host under a subpath (e.g. `radarr_path_prefix: /radarr`), but this hasn't been tested yet.
+> The `sonarr_path_prefix` variable can be adjusted to host under a subpath (e.g. `sonarr_path_prefix: /sonarr`), but this hasn't been tested yet.
 
 ### Mounting additional data directories (optional)
 
 To mount additional data directories, add the following configuration to your `vars.yml` file (adapt to your needs):
 
 ```yaml
-radarr_container_additional_volumes:
+sonarr_container_additional_volumes:
   - type: bind
     src: /path/to/blackhole
     dst: /downloads
@@ -72,29 +72,29 @@ radarr_container_additional_volumes:
 
 ### Configuring trusted networks
 
-Radarr only trusts forwarded headers from loopback addresses by default. For Traefik to pass the original client address and HTTPS scheme to Radarr, it is necessary to configure **Trusted Networks** with the proxy's address or network. Refer to [Radarr's security settings](https://wiki.servarr.com/radarr/settings#security) for details.
+Sonarr only trusts forwarded headers from loopback addresses by default. For Traefik to pass the original client address and HTTPS scheme to Sonarr, it is necessary to configure **Trusted Networks** with the proxy's address or network. Refer to [Sonarr's security settings](https://wiki.servarr.com/sonarr/settings#security) for details.
 
-First, inspect the Docker network shared by Traefik and Radarr on the server:
+First, inspect the Docker network shared by Traefik and Sonarr on the server:
 
 ```sh
 docker network inspect NETWORK_NAME --format '{{ range .IPAM.Config }}{{ println .Subnet }}{{ end }}'
 ```
 
-Replace `NETWORK_NAME` with that network's actual name. Keep in mind that only the proxy's address or the specific subnet it connects from should be trusted. Trusting a subnet also trusts other containers attached to it. For an external proxy, use its source address or subnet as seen by Radarr.
+Replace `NETWORK_NAME` with that network's actual name. Keep in mind that only the proxy's address or the specific subnet it connects from should be trusted. Trusting a subnet also trusts other containers attached to it. For an external proxy, use its source address or subnet as seen by Sonarr.
 
-You can configure **Settings → General → Security → Trusted Networks** in Radarr. To apply the setting with an environment variable, add the following configuration to your `vars.yml` file (adapt to your needs):
+You can configure **Settings → General → Security → Trusted Networks** in Sonarr. To apply the setting with an environment variable, add the following configuration to your `vars.yml` file (adapt to your needs):
 
 ```yaml
 # This is an example. Replace the value with the actual proxy subnet.
-radarr_environment_variables_additional_variables: |
+sonarr_environment_variables_additional_variables: |
   RADARR__SERVER__TRUSTEDNETWORKS=172.20.0.0/24
 ```
 
-You can specify multiple addresses or subnets by comma-separating them. This environment setting takes precedence over the value saved in Radarr's configuration.
+You can specify multiple addresses or subnets by comma-separating them. This environment setting takes precedence over the value saved in Sonarr's configuration.
 
-It is recommended to keep authentication required for all addresses, especially when using a reverse proxy. If you configure **Allowed Hosts**, make sure to include `radarr_hostname` and any additional names used by API clients; an empty list currently accepts all hostnames.
+It is recommended to keep authentication required for all addresses, especially when using a reverse proxy. If you configure **Allowed Hosts**, make sure to include `sonarr_hostname` and any additional names used by API clients; an empty list currently accepts all hostnames.
 
-After upgrading, make sure to verify login and API access through the public HTTPS URL, and check Radarr's logs for the configured trusted network and any rejected hosts.
+After upgrading, make sure to verify login and API access through the public HTTPS URL, and check Sonarr's logs for the configured trusted network and any rejected hosts.
 
 ### Extending the configuration
 
@@ -102,13 +102,13 @@ There are some additional things you may wish to configure about the service.
 
 Take a look at:
 
-- [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `radarr_environment_variables_additional_variables` variable
+- [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `sonarr_environment_variables_additional_variables` variable
 
-Refer to [this page](https://wiki.servarr.com/radarr/environment-variables) for available options which can be set to `radarr_environment_variables_additional_variables`.
+Refer to [this page](https://wiki.servarr.com/sonarr/environment-variables) for available options which can be set to `sonarr_environment_variables_additional_variables`.
 
 ### Notes on configuration
 
-A freshly installed Radarr has no authentication of its own, and this role does not add any. Radarr also serves its API key to unauthenticated callers on `/initialize.json`, and that key is enough to drive the whole API. It is recommended to turn authentication on under *Settings -> General -> Security* in Radarr itself, or put a middleware in front of it through `radarr_container_labels_additional_labels`, before making an installation reachable from the internet.
+A freshly installed Sonarr has no authentication of its own, and this role does not add any. Sonarr also serves its API key to unauthenticated callers on `/initialize.json`, and that key is enough to drive the whole API. It is recommended to turn authentication on under *Settings -> General -> Security* in Sonarr itself, or put a middleware in front of it through `sonarr_container_labels_additional_labels`, before making an installation reachable from the internet.
 
 ## Installing
 
@@ -122,7 +122,7 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 
 ## Usage
 
-After running the command for installation, Radarr becomes available at the specified hostname like `https://example.com`.
+After running the command for installation, Sonarr becomes available at the specified hostname like `https://example.com`.
 
 To get started, open the URL with a web browser to create an account. The recommended authentication method is `Forms (Login Page)`.
 
@@ -130,4 +130,4 @@ To get started, open the URL with a web browser to create an account. The recomm
 
 ### Check the service's logs
 
-You can find the logs in [systemd-journald](https://www.freedesktop.org/software/systemd/man/systemd-journald.service.html) by logging in to the server with SSH and running `journalctl -fu radarr` (or how you/your playbook named the service, e.g. `mash-radarr`).
+You can find the logs in [systemd-journald](https://www.freedesktop.org/software/systemd/man/systemd-journald.service.html) by logging in to the server with SSH and running `journalctl -fu sonarr` (or how you/your playbook named the service, e.g. `mash-sonarr`).
