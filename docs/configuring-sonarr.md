@@ -18,9 +18,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Setting up Sonarr
 
-This is an [Ansible](https://www.ansible.com/) role which installs [Sonarr](https://sonarr.video/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [Sonarr](https://sonarr.tv/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
-Sonarr is a movie organizer/manager for Usenet and BitTorrent users.
+Sonarr is a smart PVR for newsgroup and BitTorrent users.
 
 See the project's [documentation](https://wiki.servarr.com/sonarr) to learn what Sonarr does and why it might be useful to you.
 
@@ -72,7 +72,7 @@ sonarr_container_additional_volumes:
 
 ### Configuring trusted networks
 
-Sonarr only trusts forwarded headers from loopback addresses by default. For Traefik to pass the original client address and HTTPS scheme to Sonarr, it is necessary to configure **Trusted Networks** with the proxy's address or network. Refer to [Sonarr's security settings](https://wiki.servarr.com/sonarr/settings#security) for details.
+For Traefik to pass the original client address and HTTPS scheme to Sonarr, it is necessary to configure **Trusted Networks** with the proxy's address or network. Refer to [Sonarr's security settings](https://wiki.servarr.com/sonarr/settings#security) for details.
 
 First, inspect the Docker network shared by Traefik and Sonarr on the server:
 
@@ -82,15 +82,15 @@ docker network inspect NETWORK_NAME --format '{{ range .IPAM.Config }}{{ println
 
 Replace `NETWORK_NAME` with that network's actual name. Keep in mind that only the proxy's address or the specific subnet it connects from should be trusted. Trusting a subnet also trusts other containers attached to it. For an external proxy, use its source address or subnet as seen by Sonarr.
 
-You can configure **Settings → General → Security → Trusted Networks** in Sonarr. To apply the setting with an environment variable, add the following configuration to your `vars.yml` file (adapt to your needs):
+To apply the setting with an environment variable, add the following configuration to your `vars.yml` file (adapt to your needs):
 
 ```yaml
 # This is an example. Replace the value with the actual proxy subnet.
 sonarr_environment_variables_additional_variables: |
-  RADARR__SERVER__TRUSTEDNETWORKS=172.20.0.0/24
+  SONARR__SERVER__TRUSTEDNETWORKS=172.20.0.0/24
 ```
 
-You can specify multiple addresses or subnets by comma-separating them. This environment setting takes precedence over the value saved in Sonarr's configuration.
+You can specify multiple addresses or subnets by comma-separating them.
 
 It is recommended to keep authentication required for all addresses, especially when using a reverse proxy. If you configure **Allowed Hosts**, make sure to include `sonarr_hostname` and any additional names used by API clients; an empty list currently accepts all hostnames.
 
@@ -105,10 +105,6 @@ Take a look at:
 - [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `sonarr_environment_variables_additional_variables` variable
 
 Refer to [this page](https://wiki.servarr.com/sonarr/environment-variables) for available options which can be set to `sonarr_environment_variables_additional_variables`.
-
-### Notes on configuration
-
-A freshly installed Sonarr has no authentication of its own, and this role does not add any. Sonarr also serves its API key to unauthenticated callers on `/initialize.json`, and that key is enough to drive the whole API. It is recommended to turn authentication on under *Settings -> General -> Security* in Sonarr itself, or put a middleware in front of it through `sonarr_container_labels_additional_labels`, before making an installation reachable from the internet.
 
 ## Installing
 
