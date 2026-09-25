@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -19,8 +20,10 @@
       ansible.builtin.package:
         name:
           - python3-requests
-          # The nested Docker daemon below stores its images through
-          # fuse-overlayfs, which needs the binary to be present.
+          # The storage driver the inner Docker daemon is configured with below.
+          # `overlay2` cannot be nested inside the container Molecule runs these
+          # tests in, and `vfs` (the usual fallback) has no copy-on-write, so it
+          # writes out every layer of the image in full.
           - fuse-overlayfs
         state: present
 
@@ -63,17 +66,27 @@
         sonarr_molecule_extra_network_result.rc != 0
         and 'already exists' not in sonarr_molecule_extra_network_result.stderr
 
-    # Read back from inside the container later on, which is the only way to
-    # tell a `sonarr_container_additional_volumes` entry that became a real
-    # `--mount` from one that was silently dropped.
-    - name: Ensure the extra bind-mount source for Sonarr Molecule tests exists
+    # Bind-mounted into the Sonarr container through
+    # `sonarr_container_additional_volumes`. The role does not create the source
+    # of an additional volume, so it has to exist before the container is
+    # created, or `docker create` refuses the bind. verify.yml reads the marker
+    # file back from inside the container, which only works if the systemd unit
+    # really carries the additional volumes.
+    - name: Ensure the additional volume directory exists for Sonarr Molecule tests
       ansible.builtin.file:
-        path: "{{ sonarr_molecule_extra_volume_host_path }}"
+        path: "{{ sonarr_molecule_extra_volume_src }}"
         state: directory
         mode: "0755"
 
-    - name: Ensure the extra bind-mount source for Sonarr Molecule tests holds a marker
+    - name: Ensure the additional volume marker file exists for Sonarr Molecule tests
       ansible.builtin.copy:
         content: "{{ sonarr_molecule_extra_volume_marker }}\n"
-        dest: "{{ sonarr_molecule_extra_volume_host_path }}/marker"
+        dest: "{{ sonarr_molecule_extra_volume_src }}/marker.txt"
         mode: "0644"
+
+    - name: Ensure Docker is installed for Sonarr Molecule tests preparation
+      ansible.builtin.include_role:
+        name: ansible-role-docker
+      vars:
+        docker_daemon_options:
+          storage-driver: fuse-overlayfs

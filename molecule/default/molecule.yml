@@ -34,11 +34,14 @@ provisioner:
         sonarr_debug_service_enabled: false
         sonarr_restarts_check_enabled: true
 
-        # Where the extra bind-mount that exercises
-        # `sonarr_container_additional_volumes` comes from, and what it holds.
-        sonarr_molecule_extra_volume_host_path: /mash-sonarr-molecule-extra
-        sonarr_molecule_extra_volume_container_path: /extra
-        sonarr_molecule_extra_volume_marker: only-a-real-bind-mount-can-read-this
+        # The host directory mounted into the container through
+        # `sonarr_container_additional_volumes`, and the file placed in it by
+        # prepare.yml. Reading that file from inside the container is what
+        # proves the additional volumes reach the systemd unit rather than
+        # being merely declared in defaults/main.yml.
+        sonarr_molecule_extra_volume_src: /sonarr-molecule-extra
+        sonarr_molecule_extra_volume_dst: /molecule-extra
+        sonarr_molecule_extra_volume_marker: sonarr-molecule-additional-volume-marker
 
         # The container network that exercises
         # `sonarr_container_additional_networks`. The role does not create
@@ -64,8 +67,8 @@ provisioner:
 
         sonarr_container_additional_volumes:
           - type: bind
-            src: /mash-sonarr-molecule-extra
-            dst: /extra
+            src: "{{ sonarr_molecule_extra_volume_src }}"
+            dst: "{{ sonarr_molecule_extra_volume_dst }}"
             options: readonly
 
         sonarr_container_additional_networks_custom:

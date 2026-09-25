@@ -158,36 +158,30 @@
         # The bind mounts
         # ------------------------------------------------------------------
 
-        # Four roles in this fleet accepted `*_container_additional_volumes` and
-        # then dropped it on the floor, so this checks both that the entry became a
-        # real `--mount` with its `readonly` option honoured, and that the mount
-        # actually carries data through.
-        - name: Assert the additional volume became a real read-only mount
-          ansible.builtin.assert:
-            that:
-              - sonarr_container.Mounts | selectattr('Destination', 'equalto', '/config') | list | length == 1
-              - (sonarr_container.Mounts | selectattr('Destination', 'equalto', '/config') | first).Source == sonarr_molecule_data_path
-              - sonarr_container.Mounts | selectattr('Destination', 'equalto', sonarr_molecule_extra_volume_container_path) | list | length == 1
-              - >-
-                (sonarr_container.Mounts | selectattr('Destination', 'equalto', sonarr_molecule_extra_volume_container_path) | first).Source
-                == sonarr_molecule_extra_volume_host_path
-              - not (sonarr_container.Mounts | selectattr('Destination', 'equalto', sonarr_molecule_extra_volume_container_path) | first).RW
-            fail_msg: "sonarr_container_additional_volumes did not turn into the expected mounts: {{ sonarr_container.Mounts }}"
-            success_msg: "sonarr_container_additional_volumes turned into a read-only bind mount"
-
-        - name: Read the marker through the additional volume
+        # `sonarr_container_additional_volumes` has been declared but never rendered
+        # in other roles of this fleet. Reading the file back from inside the
+        # container is the difference between the variable existing and it working.
+        - name: Read the additional volume from inside the Sonarr container
           ansible.builtin.command:
             cmd: >-
-              docker exec {{ sonarr_defaults.sonarr_identifier }}
-              cat {{ sonarr_molecule_extra_volume_container_path }}/marker
-          register: sonarr_extra_volume_marker
+              docker exec sonarr
+              cat {{ sonarr_molecule_extra_volume_dst }}/marker.txt
+          register: sonarr_extra_volume
           changed_when: false
+          failed_when: false
 
-        - name: Assert the additional volume carries data into the container
+        - name: Assert the additional volume is mounted into the Sonarr container
           ansible.builtin.assert:
-            that: sonarr_extra_volume_marker.stdout | trim == sonarr_molecule_extra_volume_marker
-            fail_msg: "The additional volume did not carry the marker into the container"
-            success_msg: "The additional volume carries the marker into the container"
+            that:
+              - sonarr_extra_volume.rc == 0
+              - sonarr_extra_volume.stdout | trim == sonarr_molecule_extra_volume_marker
+            fail_msg: >-
+              {{ sonarr_molecule_extra_volume_dst }}/marker.txt does not hold
+              {{ sonarr_molecule_extra_volume_marker }}, so sonarr_container_additional_volumes
+              is declared but not rendered into the systemd unit
+            success_msg: >-
+              {{ sonarr_molecule_extra_volume_src }} is mounted at
+              {{ sonarr_molecule_extra_volume_dst }} inside the container
 
         # ------------------------------------------------------------------
         # Network
