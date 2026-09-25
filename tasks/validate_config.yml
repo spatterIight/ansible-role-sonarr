@@ -28,6 +28,13 @@
 - name: Validate Sonarr Traefik configuration
   when: sonarr_container_labels_traefik_enabled | bool
   block:
+    - name: (Deprecation) Catch and report Sonarr labels for Traefik in the old string format
+      ansible.builtin.fail:
+        msg: >-
+          `sonarr_container_labels_additional_labels` now require a list of strings.
+          Replace `sonarr_container_labels_additional_labels: |` with `sonarr_container_labels_additional_labels_custom:` and make each label a list item.
+      when: "sonarr_container_labels_additional_labels | default([]) is string"
+
     - name: Fail if required Sonarr Traefik settings not defined
       ansible.builtin.fail:
         msg: >-
