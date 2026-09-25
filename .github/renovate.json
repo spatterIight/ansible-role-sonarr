@@ -3,8 +3,7 @@
   "description": [
     "No automerge for Sonarr's own version, not even at the patch level: Sonarr runs FluentMigrator against the operator's sonarr.db on every start, forward-only, and 3 of the 11 consecutive release spans checked between 4.0.8 and 4.0.19 added migrations (4.0.9 added 212, 4.0.10 added 213-215, 4.0.13 added 216-217). A fresh-install Molecule run structurally cannot see that risk.",
     "Every one of those spans is a `patch` to Renovate: linuxserver.io's three-component tag family truncates Sonarr's own four-component versions, so the whole 4.0.x release stream looks patch-level. What Molecule does gate is that the pinned version runs: the scenario asserts the version Sonarr reports over its API is the `sonarr_version` that defaults/main.yml pins.",
-    "No allowedVersions filter is needed despite the 6287 tags in linuxserver/sonarr: `versioning=semver` already rejects every other family there (the four-component `X.Y.Z.BBBB-lsNNN` builds, and the `version-*`, `develop-*`, `preview-*`, `alpine-*` and arch-prefixed ones), leaving the 50 curated three-component tags, none of which sorts above the 4.0.x line.",
-    "The annotation in defaults/main.yml names ghcr.io rather than the lscr.io the image is pulled from, because Renovate stops paging a tag list after 20000 tags on any host it does not know needs all pages - ghcr.io is on that list, lscr.io is not. See the comment above the annotation."
+    "No allowedVersions filter is needed despite the 6287 tags in linuxserver/sonarr: `versioning=semver` already rejects every other family there (the four-component `X.Y.Z.BBBB-lsNNN` builds, and the `version-*`, `develop-*`, `preview-*`, `alpine-*` and arch-prefixed ones), leaving the 50 curated three-component tags, none of which sorts above the 4.0.x line."
   ],
   "extends": [
     "github>mother-of-all-self-hosting/renovate-config#v1.0.0"

@@ -5,7 +5,7 @@
 
 ---
 # What this scenario has to survive, established by running
-# `lscr.io/linuxserver/sonarr` by hand before any of it was written:
+# `ghcr.io/linuxserver/sonarr` by hand before any of it was written:
 #
 # - Sonarr's web UI is a single-page application that answers 200 on every
 #   path, `/zzz-does-not-exist` included, so "GET / returned 200" proves only
