@@ -45,27 +45,22 @@ provisioner:
         # these networks, so prepare.yml does.
         sonarr_molecule_extra_network: sonarr-molecule-extra
 
-        # Pacific/Kiritimati is UTC+14 all year round, and is nothing like the
-        # `Etc/UTC` the role defaults to or the UTC the image would otherwise
-        # use, so the offset the container reports can only have come from the
-        # role's own env file.
-        sonarr_molecule_expected_timezone_offset: "+1400"
-
         # Variables for Sonarr
         sonarr_uid: 1971
         sonarr_gid: 1971
-        sonarr_hostname: sonarr.example.com
-        sonarr_path_prefix: /sonarr
-        sonarr_timezone: Pacific/Kiritimati
 
-        # Deliberately not the 8989 that the image exposes and that Sonarr
-        # defaults to, so that a Sonarr which ignored the role's port setting
-        # would answer on neither the published port nor this one.
-        sonarr_container_http_port: 8181
+        sonarr_hostname: sonarr.molecule.local
+
+        # A non-root path prefix exercises the strip-prefix and slashless
+        # redirect middlewares in templates/labels.j2.
+        sonarr_path_prefix: /sonarr-ui
+
+        # Bound to the loopback interface of the test container only. Nothing
+        # is published to the machine running Molecule, so two scenarios can
+        # run side by side without fighting over a port.
         sonarr_container_http_bind_port: "127.0.0.1:8181"
 
-        sonarr_container_additional_networks_custom:
-          - sonarr-molecule-extra
+        sonarr_container_http_port: 8181
 
         sonarr_container_additional_volumes:
           - type: bind
@@ -73,14 +68,22 @@ provisioner:
             dst: /extra
             options: readonly
 
+        sonarr_container_additional_networks_custom:
+          - sonarr-molecule-extra
+
+        sonarr_container_labels_additional_labels:
+          - mash.molecule.additional-label=set-by-the-role
+
         sonarr_container_extra_arguments:
-          - "--label=mash.molecule.extra_argument=present"
+          - "--label=mash.molecule.extra-argument=set-by-the-role"
+
+        # Neither the role's default of Etc/UTC nor the test host's zone, so
+        # that the timezone the container ends up in can only have come from
+        # templates/env.j2.
+        sonarr_timezone: Asia/Tokyo
 
         sonarr_environment_variables_additional_variables: |
           SONARR_MOLECULE_MARKER=rendered-by-the-role
-
-        sonarr_container_labels_additional_labels: |
-          mash.molecule.additional_label=present
   env:
     # Workaround for https://github.com/ansible/molecule/issues/4391
     ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
