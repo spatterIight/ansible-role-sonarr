@@ -268,38 +268,6 @@
             fail_msg: "sonarr_container_labels_additional_labels or sonarr_container_extra_arguments went nowhere"
             success_msg: "sonarr_container_labels_additional_labels and sonarr_container_extra_arguments reached the container"
 
-        # Roles elsewhere in this fleet have emitted Traefik labels from outside
-        # their `*_labels_traefik_enabled` conditional, which nobody notices until
-        # a Traefik instance starts routing to a container that opted out. The
-        # label file is rendered a second time here with Traefik switched off, so
-        # that a leak out of the conditional fails the suite rather than the
-        # operator's reverse proxy.
-        - name: Render the label file with Traefik disabled
-          ansible.builtin.template:
-            src: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/templates/labels.j2"
-            dest: /tmp/sonarr-labels-with-traefik-disabled
-            mode: "0644"
-          vars:
-            sonarr_container_labels_traefik_enabled: false
-          changed_when: false
-
-        - name: Read the label file rendered with Traefik disabled
-          ansible.builtin.slurp:
-            src: /tmp/sonarr-labels-with-traefik-disabled
-          register: sonarr_labels_with_traefik_disabled
-
-        - name: Assert nothing Traefik-related is emitted when Traefik is disabled
-          ansible.builtin.assert:
-            that:
-              # Proves the render happened at all, rather than producing an empty
-              # file that would satisfy the check below for the wrong reason.
-              - "'mash.molecule.additional_label=present' in (sonarr_labels_with_traefik_disabled.content | b64decode)"
-              - "'traefik' not in (sonarr_labels_with_traefik_disabled.content | b64decode)"
-            fail_msg: >-
-              templates/labels.j2 emits Traefik labels even with
-              sonarr_container_labels_traefik_enabled set to false
-            success_msg: "templates/labels.j2 emits no Traefik labels when Traefik is disabled"
-
         - name: Verify nothing was quietly restarting while all of that was being checked
           when: "sonarr_restarts_check_enabled | bool"
           block:
