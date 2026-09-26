@@ -158,30 +158,23 @@
         # The bind mounts
         # ------------------------------------------------------------------
 
-        # `sonarr_container_additional_volumes` has been declared but never rendered
-        # in other roles of this fleet. Reading the file back from inside the
+        # Reading the file back from inside the
         # container is the difference between the variable existing and it working.
-        - name: Read the additional volume from inside the Sonarr container
+        - name: Read the marker through the additional volume
           ansible.builtin.command:
             cmd: >-
               docker exec sonarr
-              cat {{ sonarr_molecule_extra_volume_dst }}/marker.txt
+              cat {{ sonarr_molecule_extra_volume_dst }}/{{ sonarr_molecule_marker_filename }}
           register: sonarr_extra_volume
           changed_when: false
-          failed_when: false
 
-        - name: Assert the additional volume is mounted into the Sonarr container
+        - name: Assert the additional volume is mounted into the Radarr container
           ansible.builtin.assert:
             that:
               - sonarr_extra_volume.rc == 0
               - sonarr_extra_volume.stdout | trim == sonarr_molecule_extra_volume_marker
-            fail_msg: >-
-              {{ sonarr_molecule_extra_volume_dst }}/marker.txt does not hold
-              {{ sonarr_molecule_extra_volume_marker }}, so sonarr_container_additional_volumes
-              is declared but not rendered into the systemd unit
-            success_msg: >-
-              {{ sonarr_molecule_extra_volume_src }} is mounted at
-              {{ sonarr_molecule_extra_volume_dst }} inside the container
+            fail_msg: "The additional volume did not carry the marker into the container"
+            success_msg: "The additional volume carries the marker into the container"
 
         # ------------------------------------------------------------------
         # Network
