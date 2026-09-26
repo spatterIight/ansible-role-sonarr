@@ -93,7 +93,9 @@ sonarr_container_labels_additional_labels_auto: []
 sonarr_container_labels_additional_labels_custom: []
 
 # A list of extra arguments to pass to the container (`docker create` command)
-sonarr_container_extra_arguments: []
+sonarr_container_extra_arguments: "{{ sonarr_container_extra_arguments_auto + sonarr_container_extra_arguments_custom }}"
+sonarr_container_extra_arguments_auto: []
+sonarr_container_extra_arguments_custom: []
 
 # List of systemd services that the Sonarr systemd service depends on
 sonarr_systemd_required_services_list: "{{ (sonarr_systemd_required_services_list_default + sonarr_systemd_required_services_list_auto + sonarr_systemd_required_services_list_custom) | unique }}"
