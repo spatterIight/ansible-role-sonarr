@@ -109,6 +109,12 @@ sonarr_systemd_wanted_services_list_default: []
 sonarr_systemd_wanted_services_list_auto: []
 sonarr_systemd_wanted_services_list_custom: []
 
+# A list of extra arguments to pass to the process inside the container
+# Example: ['--SOME_ARGUMENT']
+sonarr_process_extra_arguments: "{{ sonarr_process_extra_arguments_auto + sonarr_process_extra_arguments_custom }}"
+sonarr_process_extra_arguments_auto: []
+sonarr_process_extra_arguments_custom: []
+
 # Controls how long to wait for the container to stop gracefully before killing it.
 sonarr_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
 
