@@ -6,6 +6,6 @@
     "No allowedVersions filter is needed despite the 6287 tags in linuxserver/sonarr: `versioning=semver` already rejects every other family there (the four-component `X.Y.Z.BBBB-lsNNN` builds, and the `version-*`, `develop-*`, `preview-*`, `alpine-*` and arch-prefixed ones), leaving the 50 curated three-component tags, none of which sorts above the 4.0.x line."
   ],
   "extends": [
-    "github>mother-of-all-self-hosting/renovate-config#v1.0.0"
+    "github>mother-of-all-self-hosting/renovate-config#v1.1.0"
   ]
 }
