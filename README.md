@@ -67,4 +67,4 @@ Tags are created by [`.github/workflows/autotag.yml`](.github/workflows/autotag.
 [`bin/test-compute-next-tag.sh`](bin/test-compute-next-tag.sh) exercises that script against throwaway repositories, and runs as a prek hook.
 
 >[!NOTE]
-> Sonarr's own version is deliberately not automerged by Renovate. See [`.github/renovate.json`](.github/renovate.json) for details.
+> Sonarr's own version is deliberately not automerged by Renovate. Refer to [`.github/renovate.json`](.github/renovate.json) for details.
