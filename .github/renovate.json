@@ -1,51 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "No automerge for Sonarr's own version, not even at the patch level: Sonarr runs FluentMigrator against the operator's sonarr.db on every start, forward-only, and 3 of the 11 consecutive release spans checked between 4.0.8 and 4.0.19 added migrations (4.0.9 added 212, 4.0.10 added 213-215, 4.0.13 added 216-217). A fresh-install Molecule run structurally cannot see that risk.",
+    "Every one of those spans is a `patch` to Renovate: linuxserver.io's three-component tag family truncates Sonarr's own four-component versions, so the whole 4.0.x release stream looks patch-level. What Molecule does gate is that the pinned version runs: the scenario asserts the version Sonarr reports over its API is the `sonarr_version` that defaults/main.yml pins.",
+    "No allowedVersions filter is needed despite the 6287 tags in linuxserver/sonarr: `versioning=semver` already rejects every other family there (the four-component `X.Y.Z.BBBB-lsNNN` builds, and the `version-*`, `develop-*`, `preview-*`, `alpine-*` and arch-prefixed ones), leaving the 50 curated three-component tags, none of which sorts above the 4.0.x line."
+  ],
   "extends": [
-    "config:best-practices",
-    ":automergeAll",
-    ":automergeBranch",
-    ":semanticCommitsDisabled"
-  ],
-  "ignorePresets": [
-    "docker:pinDigests",
-    ":maintainLockFilesWeekly"
-  ],
-  "labels": [
-    "dependencies"
-  ],
-  "ansible-galaxy": {
-    "ignoreUnstable": false,
-    "versioning": "loose"
-  },
-  "pre-commit": {
-    "enabled": true
-  },
-  "regex": {
-    "automerge": false
-  },
-  "packageRules": [
-    {
-      "matchManagers": ["github-actions"],
-      "commitBody": "[skip ci]",
-      "schedule": ["* * 1-7 */6 *"],
-      "automergeSchedule": ["* * 1-14 */6 *"],
-      "groupName": "GitHub Actions dependencies"
-    },
-    {
-      "matchManagers": ["mise", "pip_requirements", "pre-commit", "pyenv"],
-      "schedule": ["* * 1-7 */6 *"],
-      "automergeSchedule": ["* * 1-14 */6 *"]
-    }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/defaults/main.yml$/"
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[a-z-0-9]+?))?\\s+[A-Za-z0-9_]+?(?:_version|_tag)\\s*:\\s*[\"']?(?<currentValue>.+?)[\"']?\\s"
-      ]
-    }
+    "github>mother-of-all-self-hosting/renovate-config#v1.0.0"
   ]
 }

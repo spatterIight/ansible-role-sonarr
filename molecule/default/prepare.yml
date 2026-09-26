@@ -1,4 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -18,6 +20,30 @@
       ansible.builtin.package:
         name:
           - python3-requests
+          # The storage driver the inner Docker daemon is configured with below.
+          # `overlay2` cannot be nested inside the container Molecule runs these
+          # tests in, and `vfs` (the usual fallback) has no copy-on-write, so it
+          # writes out every layer of the image in full.
+          - fuse-overlayfs
+        state: present
+
+    # The role chowns its paths to `sonarr_uid`/`sonarr_gid`, and Ansible's
+    # `file` module resolves those through the passwd database rather than
+    # taking them as raw numbers, so the account has to exist. The uid is
+    # deliberately neither root nor the 1000 the linuxserver.io image assumes,
+    # which is where this fleet's PUID/PGID breakages have come from.
+    - name: Ensure the group Sonarr runs as exists for Sonarr Molecule tests
+      ansible.builtin.group:
+        name: sonarr-molecule
+        gid: "{{ sonarr_gid }}"
+        state: present
+
+    - name: Ensure the user Sonarr runs as exists for Sonarr Molecule tests
+      ansible.builtin.user:
+        name: sonarr-molecule
+        uid: "{{ sonarr_uid }}"
+        group: sonarr-molecule
+        create_home: false
         state: present
 
     - name: Ensure Docker is installed for Sonarr Molecule tests preparation
@@ -25,4 +51,42 @@
         name: ansible-role-docker
       vars:
         docker_daemon_options:
-          storage-driver: vfs
+          storage-driver: fuse-overlayfs
+
+    # The role connects the container to the networks listed in
+    # `sonarr_container_additional_networks` but deliberately does not create
+    # them, so an inert implementation of that variable would go unnoticed
+    # unless the network exists and can be checked for afterwards.
+    - name: Ensure the extra container network for Sonarr Molecule tests exists
+      ansible.builtin.command:
+        cmd: "docker network create {{ sonarr_molecule_extra_network }}"
+      register: sonarr_molecule_extra_network_result
+      changed_when: sonarr_molecule_extra_network_result.rc == 0
+      failed_when: >-
+        sonarr_molecule_extra_network_result.rc != 0
+        and 'already exists' not in sonarr_molecule_extra_network_result.stderr
+
+    # Bind-mounted into the Sonarr container through
+    # `sonarr_container_additional_volumes`. The role does not create the source
+    # of an additional volume, so it has to exist before the container is
+    # created, or `docker create` refuses the bind. verify.yml reads the marker
+    # file back from inside the container, which only works if the systemd unit
+    # really carries the additional volumes.
+    - name: Ensure the additional volume directory exists for Sonarr Molecule tests
+      ansible.builtin.file:
+        path: "{{ sonarr_molecule_extra_volume_src }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure the additional volume marker file exists for Sonarr Molecule tests
+      ansible.builtin.copy:
+        content: "{{ sonarr_molecule_extra_volume_marker }}\n"
+        dest: "{{ sonarr_molecule_extra_volume_src }}/marker.txt"
+        mode: "0644"
+
+    - name: Ensure Docker is installed for Sonarr Molecule tests preparation
+      ansible.builtin.include_role:
+        name: ansible-role-docker
+      vars:
+        docker_daemon_options:
+          storage-driver: fuse-overlayfs

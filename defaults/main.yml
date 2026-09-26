@@ -16,7 +16,7 @@ sonarr_identifier: sonarr
 sonarr_base_path: "/{{ sonarr_identifier }}"
 sonarr_data_path: "{{ sonarr_base_path }}/data"
 
-# renovate: datasource=docker depName=lscr.io/linuxserver/sonarr versioning=semver
+# renovate: datasource=docker depName=ghcr.io/linuxserver/sonarr versioning=semver
 sonarr_version: 4.0.20
 
 sonarr_uid: ""
@@ -33,7 +33,7 @@ sonarr_container_image: "{{ sonarr_container_image_registry_prefix }}linuxserver
 sonarr_container_image_tag: "{{ sonarr_version }}"
 sonarr_container_image_registry_prefix: "{{ sonarr_container_image_registry_prefix_upstream }}"
 sonarr_container_image_registry_prefix_upstream: "{{ sonarr_container_image_registry_prefix_upstream_default }}"
-sonarr_container_image_registry_prefix_upstream_default: lscr.io/
+sonarr_container_image_registry_prefix_upstream_default: ghcr.io/
 
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
@@ -60,7 +60,12 @@ sonarr_container_network: "{{ sonarr_identifier }}"
 # Control if the container network is deleted on uninstalling.
 sonarr_container_network_deletion_enabled: true
 
-# The port Sonarr is running on inside the container
+# The port Sonarr is running on inside the container.
+#
+# The role passes this to Sonarr as `SONARR__SERVER__PORT` (see `../templates/env.j2`),
+# which overrides the `<Port>` value that Sonarr keeps in `/config/config.xml`.
+# Changing it here therefore moves the application itself, not merely the Traefik
+# service label and the published port.
 sonarr_container_http_port: 8989
 
 # Controls whether the container exposes a port (tcp/8989 in the container)
@@ -83,12 +88,15 @@ sonarr_container_labels_traefik_tls_certResolver: default # noqa var-naming
 
 # sonarr_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.
+# To add your own custom labels, use `sonarr_container_labels_additional_labels_custom`
 #
 # Example:
-# sonarr_container_labels_additional_labels: |
-#   my.label=1
-#   another.label="here"
-sonarr_container_labels_additional_labels: ""
+# sonarr_container_labels_additional_labels_custom:
+#   - my.label=1
+#   - another.label="here"
+sonarr_container_labels_additional_labels: "{{ sonarr_container_labels_additional_labels_auto + sonarr_container_labels_additional_labels_custom }}"
+sonarr_container_labels_additional_labels_auto: []
+sonarr_container_labels_additional_labels_custom: []
 
 # A list of additional "volumes" to mount in the container.
 #

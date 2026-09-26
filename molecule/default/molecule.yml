@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2026 spatterlight
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -11,6 +12,8 @@ dependency:
 driver:
   name: docker
 platforms:
+  # The name embeds both the role and the scenario, so that parallel runs of
+  # other roles (or of another scenario of this one) cannot collide on it.
   - name: sonarr-${MOLECULE_DISTRO:-ubuntu2604}-default
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
     command: ${MOLECULE_DOCKER_COMMAND:-""}
@@ -19,8 +22,6 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
-    published_ports:
-      - 127.0.0.1:8989:8989
 provisioner:
   name: ansible
   config_options:
@@ -31,13 +32,65 @@ provisioner:
       all:
         # Helper variables
         sonarr_debug_service_enabled: false
+        sonarr_restarts_check_enabled: true
+
+        # The host directory mounted into the container through
+        # `sonarr_container_additional_volumes`, and the file placed in it by
+        # prepare.yml. Reading that file from inside the container is what
+        # proves the additional volumes reach the systemd unit rather than
+        # being merely declared in defaults/main.yml.
+        sonarr_molecule_extra_volume_src: /sonarr-molecule-extra
+        sonarr_molecule_extra_volume_dst: /molecule-extra
+        sonarr_molecule_extra_volume_marker: sonarr-molecule-additional-volume-marker
+
+        # The container network that exercises
+        # `sonarr_container_additional_networks`. The role does not create
+        # these networks, so prepare.yml does.
+        sonarr_molecule_extra_network: sonarr-molecule-extra
 
         # Variables for Sonarr
-        sonarr_uid: 1000
-        sonarr_gid: 1000
-        sonarr_hostname: localhost
-        sonarr_container_labels_traefik_enabled: false
-        sonarr_container_http_bind_port: 8989
+        #
+        # Deliberately not 1000: the linuxserver.io PUID/PGID pattern has left a
+        # needed directory unwritable in other roles of this fleet, and a uid
+        # that exists in the test image by accident would hide that.
+        sonarr_uid: 1971
+        sonarr_gid: 1971
+
+        sonarr_hostname: sonarr.molecule.local
+
+        # A non-root path prefix exercises the strip-prefix and slashless
+        # redirect middlewares in templates/labels.j2.
+        sonarr_path_prefix: /sonarr-ui
+
+        # Bound to the loopback interface of the test container only. Nothing
+        # is published to the machine running Molecule, so two scenarios can
+        # run side by side without fighting over a port.
+        sonarr_container_http_bind_port: "127.0.0.1:8181"
+
+        sonarr_container_http_port: 8181
+
+        sonarr_container_additional_volumes:
+          - type: bind
+            src: "{{ sonarr_molecule_extra_volume_src }}"
+            dst: "{{ sonarr_molecule_extra_volume_dst }}"
+            options: readonly
+
+        sonarr_container_additional_networks_custom:
+          - sonarr-molecule-extra
+
+        sonarr_container_labels_additional_labels:
+          - mash.molecule.additional-label=set-by-the-role
+
+        sonarr_container_extra_arguments:
+          - "--label=mash.molecule.extra-argument=set-by-the-role"
+
+        # Neither the role's default of Etc/UTC nor the test host's zone, so
+        # that the timezone the container ends up in can only have come from
+        # templates/env.j2.
+        sonarr_timezone: Asia/Tokyo
+
+        sonarr_environment_variables_additional_variables: |
+          SONARR_MOLECULE_MARKER=rendered-by-the-role
   env:
     # Workaround for https://github.com/ansible/molecule/issues/4391
     ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
