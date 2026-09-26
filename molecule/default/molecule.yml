@@ -49,6 +49,10 @@ provisioner:
         sonarr_molecule_extra_network: sonarr-molecule-extra
 
         # Variables for Sonarr
+        #
+        # Deliberately not 1000: the linuxserver.io PUID/PGID pattern has left a
+        # needed directory unwritable in other roles of this fleet, and a uid
+        # that exists in the test image by accident would hide that.
         sonarr_uid: 1971
         sonarr_gid: 1971
 
