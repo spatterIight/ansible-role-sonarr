@@ -162,11 +162,11 @@
           ansible.builtin.set_fact:
             sonarr_extra_mount: "{{ sonarr_container.Mounts | selectattr('Destination', 'equalto', sonarr_molecule_extra_volume_dst) | list }}"
 
-        # sonarr_container_additional_volumes has been inert in several roles in
+        # sonarr_container_additional_volumes_custom has been inert in several roles in
         # this collection - rendered into a comment, or into a `-v` that silently
         # dropped the options. Both the destination and the readonly option have
         # to arrive.
-        - name: Assert that sonarr_container_additional_volumes reached the container
+        - name: Assert that sonarr_container_additional_volumes_custom reached the container
           ansible.builtin.assert:
             that:
               - sonarr_extra_mount | length == 1

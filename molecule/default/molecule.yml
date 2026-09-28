@@ -35,7 +35,7 @@ provisioner:
         sonarr_restarts_check_enabled: true
 
         # The host directory mounted into the container through
-        # `sonarr_container_additional_volumes`, and the file placed in it by
+        # `sonarr_container_additional_volumes_custom`, and the file placed in it by
         # prepare.yml. Reading that file from inside the container is what
         # proves the additional volumes reach the systemd unit rather than
         # being merely declared in defaults/main.yml.
@@ -74,7 +74,7 @@ provisioner:
 
         sonarr_container_http_port: 8181
 
-        sonarr_container_additional_volumes:
+        sonarr_container_additional_volumes_custom:
           - type: bind
             src: "{{ sonarr_molecule_extra_volume_src }}"
             dst: "{{ sonarr_molecule_extra_volume_dst }}"
