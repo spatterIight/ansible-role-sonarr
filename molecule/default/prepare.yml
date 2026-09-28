@@ -36,6 +36,34 @@
           # nested-container isolation without the copying.
           storage-driver: fuse-overlayfs
 
+    - name: Ensure Docker is installed for Sonarr Molecule tests preparation
+      ansible.builtin.include_role:
+        name: ansible-role-docker
+      vars:
+        docker_daemon_options:
+          # `vfs` makes a full copy of every layer. The Sonarr image is large
+          # enough for that to dominate the run - `fuse-overlayfs` gives the same
+          # nested-container isolation without the copying.
+          storage-driver: fuse-overlayfs
+
+    # Bind-mounted into the Sonarr container through
+    # `sonarr_container_additional_volumes`. The role does not create the source
+    # of an additional volume, so it has to exist before the container is
+    # created, or `docker create` refuses the bind. verify.yml reads the marker
+    # file back from inside the container, which only works if the systemd unit
+    # really carries the additional volumes.
+    - name: Ensure the additional volume directory exists for Sonarr Molecule tests
+      ansible.builtin.file:
+        path: "{{ sonarr_molecule_extra_volume_src }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure a marker file exists in the Sonarr Molecule additional volume
+      ansible.builtin.copy:
+        content: "{{ sonarr_molecule_extra_volume_marker }}\n"
+        dest: "{{ sonarr_molecule_extra_volume_src }}/{{ sonarr_molecule_marker_filename }}"
+        mode: "0644"
+
     # The role chowns its paths to `sonarr_uid`/`sonarr_gid`, and Ansible's
     # `file` module resolves those through the passwd database rather than
     # taking them as raw numbers, so the account has to exist. The uid is
@@ -67,31 +95,3 @@
       failed_when: >-
         sonarr_molecule_extra_network_result.rc != 0
         and 'already exists' not in sonarr_molecule_extra_network_result.stderr
-
-    - name: Ensure Docker is installed for Sonarr Molecule tests preparation
-      ansible.builtin.include_role:
-        name: ansible-role-docker
-      vars:
-        docker_daemon_options:
-          # `vfs` makes a full copy of every layer. The Sonarr image is large
-          # enough for that to dominate the run - `fuse-overlayfs` gives the same
-          # nested-container isolation without the copying.
-          storage-driver: fuse-overlayfs
-
-    # Bind-mounted into the Sonarr container through
-    # `sonarr_container_additional_volumes`. The role does not create the source
-    # of an additional volume, so it has to exist before the container is
-    # created, or `docker create` refuses the bind. verify.yml reads the marker
-    # file back from inside the container, which only works if the systemd unit
-    # really carries the additional volumes.
-    - name: Ensure the additional volume directory exists for Sonarr Molecule tests
-      ansible.builtin.file:
-        path: "{{ sonarr_molecule_extra_volume_src }}"
-        state: directory
-        mode: "0755"
-
-    - name: Ensure a marker file exists in the Sonarr Molecule additional volume
-      ansible.builtin.copy:
-        content: "{{ sonarr_molecule_extra_volume_marker }}\n"
-        dest: "{{ sonarr_molecule_extra_volume_src }}/{{ sonarr_molecule_marker_filename }}"
-        mode: "0644"
