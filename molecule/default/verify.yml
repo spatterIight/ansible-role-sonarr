@@ -158,6 +158,24 @@
         # The bind mounts
         # ------------------------------------------------------------------
 
+        - name: Collect the mounts the role asked for
+          ansible.builtin.set_fact:
+            sonarr_extra_mount: "{{ sonarr_container.Mounts | selectattr('Destination', 'equalto', sonarr_molecule_extra_volume_dst) | list }}"
+
+        # sonarr_container_additional_volumes has been inert in several roles in
+        # this collection - rendered into a comment, or into a `-v` that silently
+        # dropped the options. Both the destination and the readonly option have
+        # to arrive.
+        - name: Assert that sonarr_container_additional_volumes reached the container
+          ansible.builtin.assert:
+            that:
+              - sonarr_extra_mount | length == 1
+              - sonarr_extra_mount[0].Type == 'bind'
+              - sonarr_extra_mount[0].Source == sonarr_molecule_extra_volume_src
+              - not sonarr_extra_mount[0].RW
+            fail_msg: "The additional volume did not reach the container: {{ sonarr_container.Mounts }}"
+            success_msg: "The additional volume is mounted read-only at {{ sonarr_molecule_extra_volume_dst }}"
+
         # Reading the file back from inside the
         # container is the difference between the variable existing and it working.
         - name: Read the marker through the additional volume
