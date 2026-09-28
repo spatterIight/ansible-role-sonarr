@@ -20,12 +20,21 @@
       ansible.builtin.package:
         name:
           - python3-requests
-          # The storage driver the inner Docker daemon is configured with below.
-          # `overlay2` cannot be nested inside the container Molecule runs these
-          # tests in, and `vfs` (the usual fallback) has no copy-on-write, so it
-          # writes out every layer of the image in full.
+          # The storage driver below. Docker in a container cannot use the
+          # host's overlayfs, and fuse-overlayfs is several times faster than
+          # falling back to vfs.
           - fuse-overlayfs
         state: present
+
+    - name: Ensure Docker is installed for Sonarr Molecule tests preparation
+      ansible.builtin.include_role:
+        name: ansible-role-docker
+      vars:
+        docker_daemon_options:
+          # `vfs` makes a full copy of every layer. The Sonarr image is large
+          # enough for that to dominate the run - `fuse-overlayfs` gives the same
+          # nested-container isolation without the copying.
+          storage-driver: fuse-overlayfs
 
     # The role chowns its paths to `sonarr_uid`/`sonarr_gid`, and Ansible's
     # `file` module resolves those through the passwd database rather than
@@ -45,13 +54,6 @@
         group: sonarr-molecule
         create_home: false
         state: present
-
-    - name: Ensure Docker is installed for Sonarr Molecule tests preparation
-      ansible.builtin.include_role:
-        name: ansible-role-docker
-      vars:
-        docker_daemon_options:
-          storage-driver: fuse-overlayfs
 
     # The role connects the container to the networks listed in
     # `sonarr_container_additional_networks` but deliberately does not create
