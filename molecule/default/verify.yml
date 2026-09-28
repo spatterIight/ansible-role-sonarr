@@ -155,80 +155,62 @@
             success_msg: "Sonarr wrote {{ sonarr_molecule_data_path }}/config.xml as {{ sonarr_uid }}:{{ sonarr_gid }}"
 
         # ------------------------------------------------------------------
-        # The bind mounts
+        # What `docker create` was actually told
         # ------------------------------------------------------------------
 
-        # `sonarr_container_additional_volumes` has been declared but never rendered
-        # in other roles of this fleet. Reading the file back from inside the
+        - name: Collect the mounts the role asked for
+          ansible.builtin.set_fact:
+            sonarr_extra_mount: "{{ sonarr_container.Mounts | selectattr('Destination', 'equalto', sonarr_molecule_extra_volume_dst) | list }}"
+
+        # sonarr_container_additional_volumes_custom has been inert in several roles in
+        # this collection - rendered into a comment, or into a `-v` that silently
+        # dropped the options. Both the destination and the readonly option have
+        # to arrive.
+        - name: Assert that sonarr_container_additional_volumes_custom reached the container
+          ansible.builtin.assert:
+            that:
+              - sonarr_extra_mount | length == 1
+              - sonarr_extra_mount[0].Type == 'bind'
+              - sonarr_extra_mount[0].Source == sonarr_molecule_extra_volume_src
+              - not sonarr_extra_mount[0].RW
+            fail_msg: "The additional volume did not reach the container: {{ sonarr_container.Mounts }}"
+            success_msg: "The additional volume is mounted read-only at {{ sonarr_molecule_extra_volume_dst }}"
+
+        # Reading the file back from inside the
         # container is the difference between the variable existing and it working.
-        - name: Read the additional volume from inside the Sonarr container
+        - name: Read the marker through the additional volume
           ansible.builtin.command:
             cmd: >-
               docker exec sonarr
-              cat {{ sonarr_molecule_extra_volume_dst }}/marker.txt
+              cat {{ sonarr_molecule_extra_volume_dst }}/{{ sonarr_molecule_marker_filename }}
           register: sonarr_extra_volume
           changed_when: false
-          failed_when: false
 
         - name: Assert the additional volume is mounted into the Sonarr container
           ansible.builtin.assert:
             that:
               - sonarr_extra_volume.rc == 0
               - sonarr_extra_volume.stdout | trim == sonarr_molecule_extra_volume_marker
-            fail_msg: >-
-              {{ sonarr_molecule_extra_volume_dst }}/marker.txt does not hold
-              {{ sonarr_molecule_extra_volume_marker }}, so sonarr_container_additional_volumes
-              is declared but not rendered into the systemd unit
-            success_msg: >-
-              {{ sonarr_molecule_extra_volume_src }} is mounted at
-              {{ sonarr_molecule_extra_volume_dst }} inside the container
+            fail_msg: "The additional volume did not carry the marker into the container"
+            success_msg: "The additional volume carries the marker into the container"
 
-        # ------------------------------------------------------------------
-        # Network
-        # ------------------------------------------------------------------
-
-        - name: Assert the container joined both its own network and the additional one
+        # The `docker create` line in templates/systemd/sonarr.service.j2 has a
+        # comment sitting in the middle of a backslash continuation, right in front
+        # of the tmpfs that linuxserver.io's read-only mode needs. systemd drops
+        # such a comment rather than passing it on to docker, but that is worth
+        # holding onto: if it ever stopped doing so, everything after the comment
+        # would silently become part of the image name.
+        - name: Assert that the read-only container still gets its writable /run
           ansible.builtin.assert:
             that:
-              - sonarr_defaults.sonarr_identifier in sonarr_container.NetworkSettings.Networks
-              - sonarr_molecule_extra_network in sonarr_container.NetworkSettings.Networks
+              - sonarr_container.HostConfig.ReadonlyRootfs
+              - "'/run' in (sonarr_container.HostConfig.Tmpfs | default({}))"
+              - "'exec' in sonarr_container.HostConfig.Tmpfs['/run']"
             fail_msg: >-
-              The container is on {{ sonarr_container.NetworkSettings.Networks.keys() | list }},
-              which is not the base network plus {{ sonarr_molecule_extra_network }}
-            success_msg: "The container is on its own network and on {{ sonarr_molecule_extra_network }}"
-
-        # ------------------------------------------------------------------
-        # What `docker create` was actually told
-        # ------------------------------------------------------------------
-
-        # Sonarr keeps its port in the config.xml it maintains for itself under
-        # `sonarr_data_path`, which this role does not template. Only the
-        # `SONARR__SERVER__PORT` the role renders into the env file can move it, so
-        # a Sonarr listening anywhere other than 8989 is the role's doing. The
-        # absence of 8989 matters as much as the presence of the configured port:
-        # were the override dropped, the published port and the Traefik label would
-        # still say 8181 while the process sat on 8989.
-        - name: Read the ports Sonarr listens on
-          ansible.builtin.command:
-            cmd: docker exec sonarr netstat -lnt
-          register: sonarr_listening_raw
-          changed_when: false
-
-        - name: Make sense of the ports Sonarr listens on
-          ansible.builtin.set_fact:
-            sonarr_listening_ports: "{{ sonarr_listening_raw.stdout | regex_findall(':([0-9]+)\\s') | unique }}"
-
-        - name: Assert Sonarr listens on the port the role configured and not on its own default
-          ansible.builtin.assert:
-            that:
-              - sonarr_container_http_port | string in sonarr_listening_ports
-              - "'8989' not in sonarr_listening_ports"
-            fail_msg: >-
-              Sonarr listens on {{ sonarr_listening_ports | join(', ') }}, not on the configured
-              8181, so sonarr_container_http_port does not reach the process
-            success_msg: >-
-              Sonarr listens on 8181 and not on its built-in 8989,
-              so sonarr_container_http_port reaches the process
+              The container's root filesystem is
+              {{ 'read-only' if sonarr_container.HostConfig.ReadonlyRootfs else 'writable' }}
+              and its tmpfs mounts are {{ sonarr_container.HostConfig.Tmpfs | default({}) }}
+            success_msg: "The container is read-only with an exec tmpfs at /run"
 
         - name: Assert that the role's uid and gid reached the container
           ansible.builtin.assert:
@@ -293,6 +275,35 @@
             fail_msg: "Sonarr reports {{ sonarr_container.Config.Labels['org.opencontainers.image.version'] | default('none') }}, expected {{ sonarr_defaults.sonarr_version }}"
             success_msg: "Sonarr reports {{ sonarr_container.Config.Labels['org.opencontainers.image.version'] }}"
 
+        # Sonarr keeps its port in the config.xml it maintains for itself under
+        # `sonarr_data_path`, which this role does not template. Only the
+        # `SONARR__SERVER__PORT` the role renders into the env file can move it, so
+        # a Sonarr listening anywhere other than 8989 is the role's doing. The
+        # absence of 8989 matters as much as the presence of the configured port:
+        # were the override dropped, the published port and the Traefik label would
+        # still say 8181 while the process sat on 8989.
+        - name: Read the ports Sonarr listens on
+          ansible.builtin.command:
+            cmd: docker exec sonarr netstat -lnt
+          register: sonarr_listening_raw
+          changed_when: false
+
+        - name: Make sense of the ports Sonarr listens on
+          ansible.builtin.set_fact:
+            sonarr_listening_ports: "{{ sonarr_listening_raw.stdout | regex_findall(':([0-9]+)\\s') | unique }}"
+
+        - name: Assert Sonarr listens on the port the role configured and not on its own default
+          ansible.builtin.assert:
+            that:
+              - sonarr_container_http_port | string in sonarr_listening_ports
+              - "'8989' not in sonarr_listening_ports"
+            fail_msg: >-
+              Sonarr listens on {{ sonarr_listening_ports | join(', ') }}, not on the configured
+              8181, so sonarr_container_http_port does not reach the process
+            success_msg: >-
+              Sonarr listens on 8181 and not on its built-in 8989,
+              so sonarr_container_http_port reaches the process
+
         # ------------------------------------------------------------------
         # Traefik labels
         # ------------------------------------------------------------------
@@ -317,6 +328,20 @@
               sonarr_container_extra_arguments did not reach the container:
               {{ sonarr_container.Config.Labels }}
             success_msg: "The additional label and the extra argument both reached the container"
+
+        # ------------------------------------------------------------------
+        # Network
+        # ------------------------------------------------------------------
+
+        - name: Assert the container joined both its own network and the additional one
+          ansible.builtin.assert:
+            that:
+              - sonarr_defaults.sonarr_identifier in sonarr_container.NetworkSettings.Networks
+              - sonarr_molecule_extra_network in sonarr_container.NetworkSettings.Networks
+            fail_msg: >-
+              The container is on {{ sonarr_container.NetworkSettings.Networks.keys() | list }},
+              which is not the base network plus {{ sonarr_molecule_extra_network }}
+            success_msg: "The container is on its own network and on {{ sonarr_molecule_extra_network }}"
 
         # ------------------------------------------------------------------
         # What the process inside the container actually sees

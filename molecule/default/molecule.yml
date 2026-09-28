@@ -35,13 +35,18 @@ provisioner:
         sonarr_restarts_check_enabled: true
 
         # The host directory mounted into the container through
-        # `sonarr_container_additional_volumes`, and the file placed in it by
+        # `sonarr_container_additional_volumes_custom`, and the file placed in it by
         # prepare.yml. Reading that file from inside the container is what
         # proves the additional volumes reach the systemd unit rather than
         # being merely declared in defaults/main.yml.
         sonarr_molecule_extra_volume_src: /sonarr-molecule-extra
         sonarr_molecule_extra_volume_dst: /molecule-extra
-        sonarr_molecule_extra_volume_marker: sonarr-molecule-additional-volume-marker
+        sonarr_molecule_extra_volume_marker: only-a-real-bind-mount-can-read-this
+
+        # Files placed on the host under the paths the role bind-mounts. Sonarr
+        # itself is asked to list them back, so a mount that docker accepted but
+        # the process cannot see does not pass.
+        sonarr_molecule_marker_filename: sonarr-molecule-marker.txt
 
         # The container network that exercises
         # `sonarr_container_additional_networks`. The role does not create
@@ -69,7 +74,7 @@ provisioner:
 
         sonarr_container_http_port: 8181
 
-        sonarr_container_additional_volumes:
+        sonarr_container_additional_volumes_custom:
           - type: bind
             src: "{{ sonarr_molecule_extra_volume_src }}"
             dst: "{{ sonarr_molecule_extra_volume_dst }}"
